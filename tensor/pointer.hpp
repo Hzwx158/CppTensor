@@ -7,12 +7,13 @@ class UniquePointer{
 private:
     T *ptr;
 public:
+    constexpr UniquePointer(nullptr_t=nullptr):ptr(nullptr){}
     /**
      * @brief 构造函数
      * @param ptr_ 被保管的指针
      * @attention ptr_必须是被new出来的
     */
-    UniquePointer(T *ptr_=nullptr):ptr(ptr_){}
+    UniquePointer(T *ptr_):ptr(ptr_){}
     UniquePointer(const UniquePointer &)=delete;
     UniquePointer(UniquePointer &&uPtr):ptr(uPtr.ptr){
         uPtr.ptr=nullptr;

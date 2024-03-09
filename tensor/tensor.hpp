@@ -4,7 +4,7 @@
 #include <functional>
 namespace tryAI{
 #define atCond(...) \
-filter([&](auto &num){ return __VA_ARGS__; })
+at([&](auto &num){ return __VA_ARGS__; })
 typedef std::vector<size_t> VecN;
 
 class Tensor;
@@ -20,7 +20,7 @@ public:
 private:
     NumberPtr *mArray; //内存条，里面存的不是Number，而是别人的Number*
     Shape shape; //形状
-    RefTensor(const std::vector<Number*> &init_list={});
+    RefTensor(const PtrVector<Number> &init_list={});
     RefTensor(const std::vector<RefTensor> &refTensors);
 public:
     ~RefTensor();
@@ -34,6 +34,24 @@ public:
     void print(std::ostream &osm=std::cout) const{osm<<(*this)<<std::endl;}
     H_OUTPUTABLE(RefTensor)
 };
+
+#define ASMD_OPERATOR_DEFINE(operatorName)\
+Tensor operator operatorName(const Tensor &obj) const{\
+    Tensor res=broadcast(*this, obj.shape);\
+    Tensor tmp=broadcast(obj, res.shape);\
+    auto bufSize=res.shape.bufSize();\
+    for(size_t i=0;i<bufSize;++i)\
+        res.mArray[i] operatorName##= tmp.mArray[i];\
+    return res;\
+}\
+Tensor &operator operatorName##= (const Tensor &obj){\
+    *this=broadcast(*this, obj.shape);\
+    Tensor tmp=broadcast(obj, shape);\
+    const auto bufSize=shape.bufSize();\
+    for(size_t i=0;i<bufSize;++i)\
+        mArray[i] operatorName##= tmp.mArray[i];\
+    return *this;\
+}
 /**
  * @brief 张量类
  */
@@ -46,22 +64,30 @@ public:
 private:
     NumberPtr mArray; //内存条
     Shape shape; //用什么形状解读这一块内存
+    /**
+     * @brief 私有构造函数
+     * @param ptr 内存条
+     * @param shape_ 形状
+     * @attention 不检查内存，请使用者自行分配
+    */
+    Tensor(NumberPtr &&ptr, Shape &&shape_):mArray(std::move(ptr)),shape(std::move(shape_)){}
+    Tensor(NumberPtr &&ptr, const Shape &shape_):mArray(std::move(ptr)),shape(shape_){}
 public://Memory
     /**
-     * @brief 构造函数
-     * @param init_list 初始化列表
+     * @brief 空构造函数
     */
-    Tensor(const std::vector<Number> &init_list={}, const Shape &shape_=Shape());
+    constexpr Tensor():mArray(nullptr), shape(){}
     /**
      * @brief 构造函数
      * @param init_list 初始化列表
+     * @param shape_ 初始化形状; 默认为空，会自动补充为一维
     */
-    Tensor(std::initializer_list<Number> init_list, const Shape &shape_=Shape()):Tensor(std::vector(init_list),shape_){}
+    Tensor(std::initializer_list<Number> init_list, const Shape &shape_=Shape());
     /**
      * @brief 构造函数
      * @param num 数字
     */
-    Tensor(Number num);
+    Tensor(Number num, const Shape &shape_=Shape({}));
     /**
      * @brief 拷贝构造函数
      * @attention 会新分配内存
@@ -97,6 +123,13 @@ private:
      * @brief 清除内存
     */
     void clear();
+    /**
+     * @brief 广播
+     * @param src 未广播的张量
+     * @param shape 与src广播的形状
+     * @return 广播后的张量
+    */
+    static Tensor broadcast(const Tensor &src, const Shape &shape);
 public:
     /**
      * @brief 输出
@@ -120,29 +153,12 @@ public:
      * @return 数据量
     */
     size_t getSize() const {return shape.bufSize();}
-    Tensor broadcast(const Shape &shape_) const;
-    //! bool_index的功能用filter替代了
-    /**
-     * @brief 返回一个值 相当于numpy.ndarray[tuple]
-     * @param index 几个维度的下标
-     * @return 一个RefTensor对象
-     * @example t->at({1,2,3,4}) //就是python的t[1,2,3,4]
-     * @todo 更改，应该是同[list]
-    */
-    //RefTensor at(const std::vector<size_t> &index) const;
-    /**
-     * @brief 返回一个值 相当于numpy.ndarray[tuple]
-     * @param index 几个维度的下标
-     * @return 一个RefTensor对象
-     * @example t[{1,2,3,4}] //就是python的t[1,2,3,4]
-    */
-    RefTensor operator[](const std::vector<size_t> &index) const;
     /**
      * @brief 筛选得到符合条件的值
      * @param cond 筛选函数，参数是元素
      * @return 一个RefTensor，引用符合条件的元素
     */
-    RefTensor filter(std::function<bool(const Number &)> cond) const;
+    RefTensor at(std::function<bool(const Number &)> cond) const;
     /**
      * @brief 获取元素，同numpy.ndarray[tuple]
      * @param index0 下标
@@ -150,25 +166,25 @@ public:
      * @return 一个RefTensor
     */
     template<class ...Indices>
-    RefTensor at(size_t index0, const Indices &...indices) const{
-        VecN index={index0, (static_cast<size_t>(indices))...};
+    RefTensor at(const size_t &index0, const Indices &...indices) const{
+        VecN index({index0, (static_cast<size_t>(indices))...});
         if(index.empty()||index.size()>shape.dimNumber())
             throw std::runtime_error("From Tensor::at(const vector &):\n\tWrong size of index");
         Number *head=mArray;
-        Number *be=head,*en;
+        Number *be=head;
         const auto argCount=index.size();
         size_t idx;
         size_t dimSize;
-            for(size_t i=0;i<argCount;++i){
+        for(size_t i=0;i<argCount;++i){
             dimSize=shape.dimSizeOf(i);
             if(!toBoundedIdx(index[i],dimSize,&idx))
                 throw std::out_of_range("From Tensor::at(const vector &):\n\tOut of range");
             be+=idx*shape.stepSizeOf(i);
         }
-        en=be+shape.stepSizeOf(argCount-1);
-        std::vector<Number*> res;
-        for(;be!=en;++be)
-            res.push_back(be);
+        auto resCnt=shape.stepSizeOf(argCount-1);
+        PtrVector<Number> res(resCnt);
+        for(size_t i=0;i<resCnt;++i)
+            res[i]=be+i;
         RefTensor rt(res);
         rt.shape=shape.sliced(argCount);
         return rt;
@@ -184,7 +200,7 @@ public:
         std::vector<std::vector<T>> index={index0, std::vector<T>(indices)...};
         auto resLen=index0.size();
         for(size_t i=0;i<sizeof...(Indices);++i){
-            if(index[i+1].size()!=index0.size())
+            if(index[i+1].size()!=resLen)
                 throw std::runtime_error("From Tensor::at(vector...):\n\tNot same size of index");
         }
         std::vector<RefTensor> res;
@@ -210,14 +226,14 @@ public:
     Ret2 foreach(std::function<Ret1(Number &)> func, std::function<Ret2(std::vector<Ret1>)> ret=nullptr){
         const auto size=shape.bufSize();
         Number *head=mArray;
-        std::vector<Ret1> rets;
         if(ret==nullptr){
             for(size_t i=0;i<size;++i)
                 func(head[i]);
             return Ret2();
         }
+        std::vector<Ret1> rets(size);
         for(size_t i=0;i<size;++i)
-            rets.push_back(func(head[i]));
+            rets[i]=func(head[i]);
         return ret(rets);
     }
     /**
@@ -225,8 +241,10 @@ public:
      * @param func 对每个值操作的函数
      */
     void foreach(std::function<void(Number &)> func);
-public:
-    //TENSOR_RES_OP_DECL(Tensor,+) TODO 交换律?
+    ASMD_OPERATOR_DEFINE(+)
+    ASMD_OPERATOR_DEFINE(-)
+    ASMD_OPERATOR_DEFINE(*)
+    ASMD_OPERATOR_DEFINE(/)
 };
 /**
  * @brief (递归实现)输出有形状的数组的函数
@@ -243,6 +261,7 @@ void printShaped(
     const std::function<void(std::ostream&,const T &)> &output
     =[](std::ostream &osm, const T &ele){osm<<ele;}
 ) {
+    //std::cout<<shape<<std::endl;
     if(shape.isEmpty()){
         //空数组
         osm<<"[]";

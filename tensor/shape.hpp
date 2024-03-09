@@ -1,15 +1,21 @@
 #pragma once
-#include<vector>
-#include<iostream>
 #include<memory>
-#include"base.h"
+#include"./simplevector.hpp"
 namespace tryAI{
+
 class Shape{
 public:
     using Vector=std::vector<size_t>;
+    /**
+     * @brief 计算广播的形状
+     * @param shape1 形状1
+     * @param shape2 形状2
+     * @return 广播后的形状；如果changed是false则为空
+    */
+    static Shape broadcast(const Shape &shape1, const Shape &shape2);
 private:
-    Vector shape;
-    Vector product; // product[0]=shape[1]*shape[2]...; product[shape.size()]=shape[0]*... 
+    Vector shape; 
+    Vector product; 
     void generateProduct();
 public:
     /**
@@ -17,23 +23,18 @@ public:
      * @param shape_ 形状、各维度数值
      * @attention shape_为{}也不是空shape，空shape是没存东西的Tensor的shape，shape_={}时认为是存了一个数
     */
-    Shape(const Vector &shape_):shape(shape_), product(){generateProduct();}
+    Shape(std::initializer_list<size_t> shape_);
     /**
-     * @brief 构造函数
-     * @param shape_ 形状、各维度数值
-     * @attention shape_为{}也不是空shape，空shape是没存东西的Tensor的shape，shape_={}时认为是存了一个数
+     * @brief 直接构造
+     * @param shape_ 直接存到shape
+     * @param product_ 直接存到product
+     * @attention shape、product都是倒着存的，谨慎！
     */
-    Shape(Vector &&shape_):shape(std::move(shape_)), product(){generateProduct();}
-    /**
-     * @brief 构造函数
-     * @param shape_ 形状、各维度数值
-     * @attention shape_为{}也不是空shape，空shape是没存东西的Tensor的shape，shape_={}时认为是存了一个数
-    */
-    Shape(std::initializer_list<size_t> shape_):shape(shape_), product(){generateProduct();}
+    Shape(Vector &&shape_, Vector &&product_):shape(std::move(shape_)),product(std::move(product_)){}
     /**
      * @brief 默认构造函数，为空shape
     */
-    Shape():shape(),product(){}
+    constexpr Shape():shape(),product(){}
     Shape(const Shape &)=default;
     Shape(Shape &&)=default;
     /**
@@ -63,7 +64,7 @@ public:
      * @brief 返回这个形状一共有多少元素
      * @return 元素总数
     */
-    size_t bufSize() const {return product[shape.size()];}
+    size_t bufSize() const {return product[0];}
     /**
      * @brief 是否为空形状(没存东西的Tensor的shape)
      * @return 空为true
@@ -72,13 +73,7 @@ public:
     /**
      * @brief 清空
      */
-    void clear(){shape={};product={};}
-    /**
-     * @brief 广播到shape_的形状
-     * @param shape_ 另一个shape
-     * @return 广播后的Shape
-    */
-    Shape broadcastedShape(const Shape &shape_) const;
+    void clear(){shape.clear();product.clear();}
     /**
      * @brief 截取
      * @param be 起点(含)
@@ -92,20 +87,62 @@ public:
      * @return [be,-1]的Shape
     */
     Shape sliced(size_t be) const;
-
-    const Vector &asVector() const {return shape;}
+    /**
+     * @brief 获取shape的起始地址
+     * @attention 直接操作指针会引起不必要的麻烦，慎用
+    */
+    size_t *getShapeData() const {return shape.data();}
+    /**
+     * @brief 获取product的起始地址
+     * @attention 直接操作指针会引起不必要的麻烦，慎用
+    */
+    size_t *getProductData() const {return product.data();}
     Shape &operator=(const Shape &)=default;
     Shape &operator=(Shape &&)=default;
     bool operator==(const Shape &shape_) const;
     bool operator!=(const Shape &shape_) const {return !((*this)==shape_);}
     H_OUTPUTABLE(Shape)
 };
-/**
- * @brief 判断一个数是否是合理下标、并转成[0, bufSize)的下标值
- * @param idx 输入下标值
- * @param bufSize 数组长度
- * @param res 转成合理下标值的存储位置
- * @return 如果不合理，返回nullptr；合理返回res
- */
-size_t *toBoundedIdx(size_t idx, size_t bufSize, size_t *res);
+
+
+//下标辅助
+template<class T>
+class list{
+private:
+    std::vector<T> v;
+public:
+    list(const std::vector<T> &vec):v(vec){}
+    list(std::vector<T> &&vec):v(std::move(vec)){}
+    list(std::initializer_list<T> l):v(l){}
+    list(const list &obj):v(obj.v){}
+    list(list &&obj):v(std::move(obj.v)){}
+    operator std::vector<T>& (){return v;}
+    const std::vector<T> &getVector() const {return v;}
+};
+#define PARTIAL_SPECIALIZE_LIST(orgClass, saveClass)\
+template<>\
+class list<orgClass>{\
+private:\
+    std::vector<saveClass> v;\
+public:\
+    list(const std::vector<orgClass> &vec):v(vec.size(),0){\
+        for(size_t i=0;i<vec.size();++i)\
+            v[i]=vec[i];\
+    }\
+    list(std::initializer_list<orgClass> l):v(l.size(),0){\
+        auto p=l.begin();\
+        for(size_t i=0;i<l.size();++i)\
+            v[i]=*(p+i);\
+    }\
+    list(const list &obj):v(obj.v){}\
+    list(list &&obj):v(std::move(obj.v)){}\
+    operator std::vector<saveClass>& (){return v;}\
+    const std::vector<saveClass> &getVector() const {return v;}\
+};
+PARTIAL_SPECIALIZE_LIST(int, size_t)
+PARTIAL_SPECIALIZE_LIST(short, size_t)
+PARTIAL_SPECIALIZE_LIST(unsigned int, size_t)
+PARTIAL_SPECIALIZE_LIST(unsigned short, size_t)
+
+
 }

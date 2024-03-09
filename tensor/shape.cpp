@@ -1,34 +1,21 @@
 #include "shape.hpp"
 namespace tryAI{
-size_t *toBoundedIdx(size_t idx, size_t bufSize, size_t *res){
-    if(!res)
-        throw std::runtime_error("From Shape.toBoundedIdx:\n\t<res> is nullptr");
-    if(0<=idx && idx<bufSize){
-        *res=idx;
-        return res;
-    }
-    idx+=bufSize;
-    if(0<=idx && idx<bufSize){
-        *res=idx;
-        return res;
-    }
-    return nullptr;
+Shape::Shape(std::initializer_list<size_t> shape_)
+:shape(shape_.begin(),shape_.size()),product(shape_.size()+1)
+{
+    const auto size=shape_.size();
+    product[size]=1;
+    generateProduct();
 }
 void Shape::generateProduct(){
-    if(shape.empty()){
-        product={1};
-        return;
-    }
-    product=Vector(shape.size()+1, 1);
     const auto shapeSize=shape.size();
-    for(auto i=shapeSize-1; i>0; --i)
-        product[i-1]=shape[i]*product[i];
-    product[shapeSize]=shape[0]*product[0];
+    for(auto i=shapeSize; i>0; --i)
+        product[i-1]=shape[i-1]*product[i];
 }
 size_t Shape::stepSizeOf(size_t dim) const {
-    if(!toBoundedIdx(dim, shape.size(), &dim))
+    if(!toBoundedIdx(dim, shape.size(), &dim)) //这里必须检查是[0, shapeSize)之间的，然后再+1
         throw std::out_of_range("From Shape::stepSizeOf(size_t):\n\tOut of range");
-    return product[dim];
+    return product[dim+1];
 }
 Shape Shape::sliced(size_t be, size_t en) const{
     bool legal1,legal2;
@@ -41,12 +28,8 @@ Shape Shape::sliced(size_t be, size_t en) const{
     if(be>en)
         throw std::runtime_error("From Shape::sliced(size_t,size_t):\n\tWrong begin end");
     Shape res;
-    ++en;
-    for(auto p=be;p!=en;++p){
-        res.shape.push_back(shape[p]);
-        res.product.push_back(product[p]);
-    }
-    res.product.push_back(be?product[be-1]:product[shape.size()]);
+    res.shape=Vector(shape.data()+be, en-be);
+    res.generateProduct();
     return res;
 }
 Shape Shape::sliced(size_t be) const{
@@ -56,13 +39,10 @@ Shape Shape::sliced(size_t be) const{
     legal=toBoundedIdx(be,size,&be);
     if(!legal)
         throw std::out_of_range("From Shape::sliced(size_t):\n\tOut of range");
-    Shape res;
-    for(auto p=be;p!=size;++p){
-        res.shape.push_back(shape[p]);
-        res.product.push_back(product[p]);
-    }
-    res.product.push_back(be?product[be-1]:product[shape.size()]);
-    return res;
+    return Shape(
+        Vector(shape.data()+be, size-be), 
+        Vector(product.data()+be, size-be+1)
+    );
 }
 bool Shape::operator==(const Shape &shape_) const{
     if(&shape_==this) 
@@ -81,9 +61,43 @@ std::ostream &operator<<(std::ostream &osm, const Shape &obj){
     osm<<'(';
     auto s=obj.shape.size();
     for(size_t i=0;i<s;++i){
-        osm<<obj.shape.at(i);
+        osm<<obj.shape[i];
         if(i+1!=s) osm<<',';
     }
     return osm<<')';
+}
+Shape Shape::broadcast(const Shape &shape1, const Shape &shape2){
+    const Shape &longer=(shape1.dimNumber()>shape2.dimNumber()?shape1:shape2);
+    const Shape &shorter=*((&shape1)-(&longer)+(&shape2));
+    const auto shorterDimNumber=shorter.dimNumber();
+    if(
+        shorterDimNumber<=longer.dimNumber() &&
+        shorter.bufSize()==1
+    ) return longer;
+    auto longerVec=longer.shape;
+    const auto &shorterVec=shorter.shape;
+    bool changed=false;
+    //计算每一维度的值
+    for(size_t i=0;i<shorterDimNumber;++i){
+        auto &l=longerVec[-i-1];
+        auto &s=shorterVec[-i-1];
+        if(l!=s){
+            if(l==1){
+                changed=true;//需要更改
+                l=s;
+            }
+            else if(s!=1)//既不相等也没1
+                throw std::runtime_error("From Shape::broadcast:\n\tThese two shape can't be broadcast");
+        }
+    }
+    if(!changed) 
+        return longer;
+    //计算product并拷贝
+    const auto resSize=longer.dimNumber();
+    Vector productVec(resSize+1);
+    productVec[resSize]=1;
+    for(size_t i=resSize;i>0;--i)
+        productVec[i-1]=productVec[i]*longerVec[i-1];
+    return Shape(std::move(longerVec),std::move(productVec));
 }
 }

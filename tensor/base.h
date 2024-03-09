@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 namespace tryAI{
 /**
@@ -24,44 +25,30 @@ ClassName operator operatorName(const ClassName &obj) const {\
     return res operatorName##= obj;\
 }
 
-template<class T>
-class list{
+template<class T, class ReleaseFunc>
+class Releaser{
 private:
-    std::vector<T> v;
+    const ReleaseFunc &release;
+    T &obj;
 public:
-    list(const std::vector<T> &vec):v(vec){}
-    list(std::vector<T> &&vec):v(std::move(vec)){}
-    list(std::initializer_list<T> l):v(l){}
-    list(const list &obj):v(obj.v){}
-    list(list &&obj):v(std::move(obj.v)){}
-    operator std::vector<T>& (){return v;}
-    const std::vector<T> &getVector() const {return v;}
+    Releaser(T &obj_, const ReleaseFunc &releaseFunc):
+    obj(obj_), release(releaseFunc){}
+    ~Releaser(){release(obj);}
 };
-
-#define PARTIAL_SPECIALIZE_LIST(orgClass, saveClass)\
-template<>\
-class list<orgClass>{\
-private:\
-    std::vector<saveClass> v;\
-public:\
-    list(const std::vector<orgClass> &vec):v(vec.size(),0){\
-        for(size_t i=0;i<vec.size();++i)\
-            v[i]=vec[i];\
-    }\
-    list(std::initializer_list<orgClass> l):v(l.size(),0){\
-        auto p=l.begin();\
-        for(size_t i=0;i<l.size();++i)\
-            v[i]=*(p+i);\
-    }\
-    list(const list &obj):v(obj.v){}\
-    list(list &&obj):v(std::move(obj.v)){}\
-    operator std::vector<saveClass>& (){return v;}\
-    const std::vector<saveClass> &getVector() const {return v;}\
+template<class T, class R>
+class Releaser<T, R(T::*)()>{
+public:
+    using TMemFunc=R(T::*)();
+private:
+    TMemFunc release;
+    T &obj;
+public:
+    Releaser(T &obj_, TMemFunc releaseFunc):
+    obj(obj_), release(releaseFunc){}
+    ~Releaser(){
+        if(release)
+            (obj.*release)();
+    }
 };
-PARTIAL_SPECIALIZE_LIST(int, size_t)
-PARTIAL_SPECIALIZE_LIST(short, size_t)
-PARTIAL_SPECIALIZE_LIST(unsigned int, size_t)
-PARTIAL_SPECIALIZE_LIST(unsigned short, size_t)
-
 
 }
