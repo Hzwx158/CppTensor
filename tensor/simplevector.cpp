@@ -15,5 +15,4 @@ size_t *toBoundedIdx(size_t idx, size_t bufSize, size_t *res){
     }
     return nullptr;
 }
-
 } // namespace tryAI

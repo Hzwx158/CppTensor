@@ -118,6 +118,8 @@ public:
     list(list &&obj):v(std::move(obj.v)){}
     operator std::vector<T>& (){return v;}
     const std::vector<T> &getVector() const {return v;}
+    T &operator[](size_t i){return v[i];}
+    size_t size() const {return v.size();}
 };
 #define PARTIAL_SPECIALIZE_LIST(orgClass, saveClass)\
 template<>\
@@ -129,6 +131,10 @@ public:\
         for(size_t i=0;i<vec.size();++i)\
             v[i]=vec[i];\
     }\
+    list(std::vector<orgClass> &&vec):v(vec.size()){\
+        for(size_t i=0;i<vec.size();++i)\
+                v[i]=vec[i];\
+    }\
     list(std::initializer_list<orgClass> l):v(l.size(),0){\
         auto p=l.begin();\
         for(size_t i=0;i<l.size();++i)\
@@ -138,6 +144,8 @@ public:\
     list(list &&obj):v(std::move(obj.v)){}\
     operator std::vector<saveClass>& (){return v;}\
     const std::vector<saveClass> &getVector() const {return v;}\
+    saveClass &operator[](size_t i) const {return v[i];}\
+    size_t size() const {return v.size();}\
 };
 PARTIAL_SPECIALIZE_LIST(int, size_t)
 PARTIAL_SPECIALIZE_LIST(short, size_t)

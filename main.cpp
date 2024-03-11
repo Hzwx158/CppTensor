@@ -26,19 +26,20 @@ int main()
     tryAI::Releaser rel(__time,[](auto &beginTime){
         auto endTime=system_clock::now();
         auto duration=duration_cast<microseconds>(endTime-beginTime);
-        cout<<"using time of "<<duration.count()/1000.0<<"ms\n";
+        cout<<"\n----------------------\n"
+            "using time of "<<duration.count()/1000.0<<"ms"
+            "\n----------------------\n";
         //ofs<<double(duration.count())<<',';
     });
     __time=system_clock::now();
+
 #if 1
-    auto t=new Tensor({1,2,3,4,5,6,7,8,9,10,11,12},{2,2,3});
-    //auto t=new Tensor({1,2,3,4,5,6,7,8},{1,2,2,1,2});
-    auto p=(*t)/Tensor({0,1,2},{1,1,3});
-    cout<<p<<endl;
-    delete t;
+    //auto t=new Tensor({1,2,3,4,5,6,7,8,9,10,11,12},{2,2,3});
+    auto t=Tensor::arange(1,13,1,{2,2,3});
+    t.at(list{0,1},list{0,1}).at(1).print();
+    cout<<t;
 #else
-    int b=0;
-    cout<<1.0/b<<endl;
+    printf("%s","1");
 #endif
 // }
     return 0;

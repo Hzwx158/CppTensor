@@ -1,4 +1,6 @@
 #pragma once
+#ifndef CPPTENSOR_TENSOR_BASE
+#define CPPTENSOR_TENSOR_BASE
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -50,5 +52,16 @@ public:
             (obj.*release)();
     }
 };
+
+inline void rprintBits(double d){
+    size_t tmp=*(size_t*)(&d);
+    const static int s=64;
+    for(int i=0;i<s;++i){
+        std::cout<<(tmp&1?1:0);
+        tmp>>=1;
+    }
+    std::cout<<std::endl;
+}
+#endif
 
 }
