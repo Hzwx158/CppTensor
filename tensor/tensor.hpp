@@ -1,7 +1,6 @@
 #pragma once
 #include "shape.hpp"
 #include "pointer.hpp"
-#include <functional>
 namespace tryAI{
 #define atCond(...) \
 at([&](auto &num){ return __VA_ARGS__; })
@@ -198,7 +197,7 @@ public:
      * @return 一个RefTensor
     */
     template<class ...Indices>
-    RefTensor at(const size_t &index0, const Indices &...indices) const{
+    RefTensor at(size_t index0, Indices ...indices) const{
         std::vector<size_t> index({index0, (static_cast<size_t>(indices))...});
         if(index.empty()||index.size()>shape.dimNumber())
             throw std::runtime_error("From Tensor::at(const vector &):\n\tWrong size of index");
@@ -281,7 +280,10 @@ public:
     Tensor operator/(const Tensor &obj) const;
     friend Tensor exp(const Tensor &obj);
     friend Tensor log(const Tensor &obj);
+    friend Tensor sigmoid(const Tensor &obj);
+    friend Tensor sin(const Tensor &obj);
 };
+inline double abs(double a){return a>0?a:-a;}
 /**
  * @brief 计算e指数
  * @param obj 输入张量
@@ -289,60 +291,23 @@ public:
 */
 Tensor exp(const Tensor &obj);
 /**
- * @brief 计算对数
+ * @brief 计算e对数
  * @param obj 输入张量
  * @return 返回一个张量
 */
 Tensor log(const Tensor &obj);
 /**
- * @brief 输出有形状的数组的函数
- * @param arr 输出内存的首地址
- * @param shape 数组形状
- * @param osm 所用输出流，默认std::cout
- * @param output 输出每个元素的函数，默认osm<<ele
- * @todo 输出到控制台时，时间性能低于python, 甚是奇怪
+ * @brief 激活函数sigmoid
+ * @param obj 输入张量
+ * @return 返回一个张量
 */
-template<class T>
-void printShaped(
-    const T *arr, const Shape &shape, 
-    std::ostream &osm=std::cout,
-    const std::function<void(std::ostream&,const T &)> &output
-    =[](std::ostream &osm, const T &ele){osm<<ele;}
-) {
-    if(shape.isEmpty()){
-        //空数组
-        osm<<"[]";
-        return;
-    }
-    const auto shapeDimNumber=shape.dimNumber();
-    if(!shapeDimNumber){
-        //数字
-        output(osm, *arr);
-        return;
-    }
-    const auto shapeProduct=shape.getProductData();
-    const auto shapeBufSize=shape.bufSize();
-    for(size_t pos=0, i, braCnt=shapeDimNumber;pos<shapeBufSize;++pos){
-        for(i=0;braCnt && i<shapeDimNumber-braCnt;++i)
-            osm<<' ';
-        for(i=0;i<braCnt;++i)
-            osm<<'[';
-        output(osm, *(arr+pos));
-        for(i=0, braCnt=0; i<shapeDimNumber; ++i){
-            if((pos+1)%shapeProduct[shapeDimNumber-i-1])
-                break;
-            ++braCnt;
-            osm<<']';
-        }
-        if(pos+1!=shapeBufSize){
-            osm<<", ";
-            if(braCnt>=2)
-                osm<<"\n\n";
-            else if(braCnt)
-                osm<<"\n";
-        }
-    }
-}
+Tensor sigmoid(const Tensor &obj);
+/**
+ * @brief 正弦函数sin
+ * @param obj 输入张量
+ * @return 返回一个张量
+*/
+Tensor sin(const Tensor &obj);
 
 }
 /*

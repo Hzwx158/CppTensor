@@ -2,8 +2,12 @@ import numpy as np
 import timeit
 
 f=open('./pytime.txt','w')
-#for _ in range(0,10000):
 timer=timeit.default_timer()
-a=np.array([1,2,3,4,5,6,7,8]).reshape(1,2,2,1,2)
-toprint= a+1
+#for _ in range(0,10000):
+a=np.arange(start=0,stop=8).reshape(2,2,2)
+
+
+toprint=a
+print(toprint)
+
 print(str((timeit.default_timer()-timer)*1000)+',')

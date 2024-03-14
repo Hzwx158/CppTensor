@@ -1,6 +1,6 @@
 #pragma once
-#include<memory>
 #include"./simplevector.hpp"
+#include <functional>
 namespace tryAI{
 
 class Shape{
@@ -104,53 +104,56 @@ public:
     H_OUTPUTABLE(Shape)
 };
 
+#define list std::vector
 
-//下标辅助
+/**
+ * @brief 输出有形状的数组的函数
+ * @param arr 输出内存的首地址
+ * @param shape 数组形状
+ * @param osm 所用输出流，默认std::cout
+ * @param output 输出每个元素的函数，默认osm<<ele
+ * @todo 输出到控制台时，时间性能低于python, 甚是奇怪
+*/
 template<class T>
-class list{
-private:
-    std::vector<T> v;
-public:
-    list(const std::vector<T> &vec):v(vec){}
-    list(std::vector<T> &&vec):v(std::move(vec)){}
-    list(std::initializer_list<T> l):v(l){}
-    list(const list &obj):v(obj.v){}
-    list(list &&obj):v(std::move(obj.v)){}
-    operator std::vector<T>& (){return v;}
-    const std::vector<T> &getVector() const {return v;}
-    T &operator[](size_t i){return v[i];}
-    size_t size() const {return v.size();}
-};
-#define PARTIAL_SPECIALIZE_LIST(orgClass, saveClass)\
-template<>\
-class list<orgClass>{\
-private:\
-    std::vector<saveClass> v;\
-public:\
-    list(const std::vector<orgClass> &vec):v(vec.size(),0){\
-        for(size_t i=0;i<vec.size();++i)\
-            v[i]=vec[i];\
-    }\
-    list(std::vector<orgClass> &&vec):v(vec.size()){\
-        for(size_t i=0;i<vec.size();++i)\
-                v[i]=vec[i];\
-    }\
-    list(std::initializer_list<orgClass> l):v(l.size(),0){\
-        auto p=l.begin();\
-        for(size_t i=0;i<l.size();++i)\
-            v[i]=*(p+i);\
-    }\
-    list(const list &obj):v(obj.v){}\
-    list(list &&obj):v(std::move(obj.v)){}\
-    operator std::vector<saveClass>& (){return v;}\
-    const std::vector<saveClass> &getVector() const {return v;}\
-    saveClass &operator[](size_t i) const {return v[i];}\
-    size_t size() const {return v.size();}\
-};
-PARTIAL_SPECIALIZE_LIST(int, size_t)
-PARTIAL_SPECIALIZE_LIST(short, size_t)
-PARTIAL_SPECIALIZE_LIST(unsigned int, size_t)
-PARTIAL_SPECIALIZE_LIST(unsigned short, size_t)
-
+void printShaped(
+    const T *arr, const Shape &shape, 
+    std::ostream &osm=std::cout,
+    const std::function<void(std::ostream&,const T &)> &output
+    =[](std::ostream &osm, const T &ele){osm<<ele;}
+) {
+    if(shape.isEmpty()){
+        //空数组
+        osm<<"[]";
+        return;
+    }
+    const auto shapeDimNumber=shape.dimNumber();
+    if(!shapeDimNumber){
+        //数字
+        output(osm, *arr);
+        return;
+    }
+    const auto shapeProduct=shape.getProductData();
+    const auto shapeBufSize=shape.bufSize();
+    for(size_t pos=0, i, braCnt=shapeDimNumber;pos<shapeBufSize;++pos){
+        for(i=0;braCnt && i<shapeDimNumber-braCnt;++i)
+            osm<<' ';
+        for(i=0;i<braCnt;++i)
+            osm<<'[';
+        output(osm, *(arr+pos));
+        for(i=0, braCnt=0; i<shapeDimNumber; ++i){
+            if((pos+1)%shapeProduct[shapeDimNumber-i-1])
+                break;
+            ++braCnt;
+            osm<<']';
+        }
+        if(pos+1!=shapeBufSize){
+            osm<<", ";
+            if(braCnt>=2)
+                osm<<"\n\n";
+            else if(braCnt)
+                osm<<"\n";
+        }
+    }
+}
 
 }

@@ -7,7 +7,7 @@ class UniquePointer{
 private:
     T *ptr;
 public:
-    constexpr UniquePointer(nullptr_t=nullptr):ptr(nullptr){}
+    constexpr UniquePointer(decltype(nullptr)=nullptr):ptr(nullptr){}
     /**
      * @brief 构造函数
      * @param ptr_ 被保管的指针

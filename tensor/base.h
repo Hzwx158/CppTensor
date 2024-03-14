@@ -62,6 +62,28 @@ inline void rprintBits(double d){
     }
     std::cout<<std::endl;
 }
-#endif
+
+#define SCD static constexpr double
+struct constant{
+    SCD pi=3.14159265358979323846;
+    SCD e=2.7182818284590452354;
+    SCD log2e=1.4426950408889634074;
+    SCD log10e=0.43429448190325182765;
+    SCD ln2=0.69314718055994530942;
+    SCD ln10=2.30258509299404568402;
+    SCD pi_2=1.57079632679489661923;
+    SCD pi_4=0.78539816339744830962;
+    SCD _1_pi=0.31830988618379067154;
+    SCD _2_pi=0.63661977236758134308;
+    SCD sqrt_pi=1.12837916709551257390;
+    SCD sqrt2=1.41421356237309504880;
+    SCD sqrt1_2=0.70710678118654752440;
+};
+#undef SCD
+
+
+
+
 
 }
+#endif

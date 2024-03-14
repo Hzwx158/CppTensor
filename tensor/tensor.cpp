@@ -79,7 +79,7 @@ void RefTensor::operator=(RefTensor &&obj){
     shape=std::move(obj.shape);
     obj.mArray=nullptr;
 }
-void RefTensor::operator=(Tensor const &obj){
+void RefTensor::operator=(const Tensor &obj){
     //Tensor obj1=Tensor::broadcast(obj, shape);
     if(obj.shape.bufSize()!=shape.bufSize())
         throw std::runtime_error("@Author: When not broadcast, it's wrong shape from RefTensor::operator=");
@@ -101,7 +101,7 @@ Tensor RefTensor::asTensor() const {
 RefTensor::operator Tensor(){
     return asTensor();
 }
-std::ostream &operator<<(std::ostream &osm, RefTensor const &obj){
+std::ostream &operator<<(std::ostream &osm, const RefTensor &obj){
     printShaped<RefTensor::NumberPtr>(
         obj.mArray,obj.shape,osm,
         [](std::ostream &osm, auto &ele){
@@ -114,7 +114,7 @@ std::ostream &operator<<(std::ostream &osm, RefTensor const &obj){
 //--------------------------------内存---------------------------
 
 
-Tensor::Tensor(std::initializer_list<Number> init_list, Shape const &shape_)
+Tensor::Tensor(std::initializer_list<Number> init_list, const Shape &shape_)
 :mArray(init_list.size()? new Number[init_list.size()]:nullptr)
 ,shape(shape_.isEmpty()?Shape({init_list.size()}):shape_)
 {
@@ -122,15 +122,15 @@ Tensor::Tensor(std::initializer_list<Number> init_list, Shape const &shape_)
     std::cout<<"Tensor Alloc @"<<static_cast<void*>(mArray)<<'['<<shape.bufSize()<<']'<<std::endl;
 #endif
     if(init_list.size()!=shape.bufSize())
-        throw std::runtime_error("From Tensor::Tensor({},Shape const &):\n\tShape unsame!");    
+        throw std::runtime_error("From Tensor::Tensor({},const Shape &):\n\tShape unsame!");    
     if(init_list.size())
         memcpy(mArray, init_list.begin(), init_list.size()*sizeof(Number));
 }
-Tensor::Tensor(Number num, Shape const &shape_)
+Tensor::Tensor(Number num, const Shape &shape_)
 :mArray(shape_.isEmpty()? nullptr : new Number[shape_.bufSize()])
 ,shape(shape_){
     if(shape.isEmpty())
-        throw std::runtime_error("From Tensor::Tensor(Number, Shape const &):\n\tEmpty shape!");
+        throw std::runtime_error("From Tensor::Tensor(Number, const Shape &):\n\tEmpty shape!");
 #if DEBUG
     std::cout<<"Tensor Alloc @"<<static_cast<void*>(mArray)<<'['<<shape.bufSize()<<']'<<std::endl;
 #endif
@@ -138,7 +138,7 @@ Tensor::Tensor(Number num, Shape const &shape_)
     for(size_t i=0;i<size;++i)
         mArray[i]=num;
 }
-Tensor::Tensor(Tensor const &obj)
+Tensor::Tensor(const Tensor &obj)
 :mArray(new Number[obj.shape.bufSize()])
 ,shape(obj.shape)
 {
@@ -146,7 +146,7 @@ Tensor::Tensor(Tensor const &obj)
     std::cout<<"Tensor Alloc @"<<static_cast<void*>(mArray)<<'['<<shape.bufSize()<<']'<<std::endl;
 #endif
     if(shape.isEmpty()) 
-        throw std::runtime_error("@Author from Tensor::Tensor(Tensor const &):\n\tshape can't be empty");
+        throw std::runtime_error("@Author from Tensor::Tensor(const Tensor &):\n\tshape can't be empty");
     auto size=shape.bufSize();
     memcpy(mArray, obj.mArray, sizeof(Number)*size);
 }
@@ -159,7 +159,7 @@ void Tensor::clear(){
     mArray.clear();
     shape.clear();
 }
-Tensor &Tensor::operator=(Tensor const &obj){
+Tensor &Tensor::operator=(const Tensor &obj){
     if(this==&obj) 
         return *this;
     clear();
@@ -187,13 +187,13 @@ Tensor &Tensor::operator=(Tensor &&obj){
 
 //-------------------------功能-----------------------------
 
-std::ostream &operator<<(std::ostream &osm, Tensor const &obj){
+std::ostream &operator<<(std::ostream &osm, const Tensor &obj){
     printShaped<Tensor::Number>(obj.mArray,obj.shape,osm);
     return osm<<"\nshape: "<<obj.shape;
 }
-void Tensor::reshape(Shape const &shape_){
+void Tensor::reshape(const Shape &shape_){
     if(shape.bufSize()!=shape_.bufSize())
-        throw std::runtime_error("From Tensor::reshape(Shape const &):\n\tWrong Size");
+        throw std::runtime_error("From Tensor::reshape(const Shape &):\n\tWrong Size");
     shape=shape_;
 }
 
@@ -217,7 +217,7 @@ RefTensor Tensor::at(std::function<bool(const Number &)> cond) const{
 
 //--------------------------运算符----------------------------------
 #define ASMD_OPERATOR_DEFINE(operatorName)\
-Tensor &Tensor::operator operatorName##= (Tensor const &obj){\
+Tensor &Tensor::operator operatorName##= (const Tensor &obj){\
     *this=broadcast(*this, obj.shape);\
     Tensor tmp=broadcast(obj, shape);\
     const auto bufSize=shape.bufSize();\
@@ -225,7 +225,7 @@ Tensor &Tensor::operator operatorName##= (Tensor const &obj){\
         mArray[i] operatorName##= tmp.mArray[i];\
     return *this;\
 }\
-Tensor Tensor::operator operatorName(Tensor const &obj) const{\
+Tensor Tensor::operator operatorName(const Tensor &obj) const{\
     Tensor res=broadcast(*this, obj.shape);\
     Tensor tmp=broadcast(obj, res.shape);\
     auto bufSize=res.shape.bufSize();\
@@ -239,26 +239,43 @@ ASMD_OPERATOR_DEFINE(*)
 ASMD_OPERATOR_DEFINE(/)
 #undef ASMD_OPERATR_DEFINE
 
+//res是obj的拷贝构造，mArray是res的内存条，bufSize是mArray的长度，i是遍历变量
+#define TensorForEachFunc \
+Tensor res(obj);\
+Tensor::Number *mArray=res.mArray;\
+size_t bufSize=res.shape.bufSize();\
+for(size_t i=0;i<bufSize;++i)
 
-Tensor exp(Tensor const &obj){
-    Tensor res(obj);
-    Tensor::Number *mArray=res.mArray;
-    size_t bufSize=res.shape.bufSize();
-    for(size_t i=0;i<bufSize;++i)
+Tensor exp(const Tensor &obj){
+    TensorForEachFunc{
         mArray[i]=::exp(mArray[i]);
+    }
     return res;
 }
-Tensor log(Tensor const &obj){
-    Tensor res(obj);
-    Tensor::Number *mArray=res.mArray;
-    size_t bufSize=res.shape.bufSize();
-    for(size_t i=0;i<bufSize;++i)
+Tensor log(const Tensor &obj){
+    TensorForEachFunc{
         mArray[i]=::log(mArray[i]);
+    }
     return res;
 }
+Tensor sigmoid(const Tensor &obj){
+    double x;
+    TensorForEachFunc{
+        x=::exp(mArray[i]);
+        mArray[i]=x/(1+x);
+    }
+    return res;
+}
+Tensor sin(const Tensor &obj){
+    TensorForEachFunc{
+        mArray[i]=::sin(mArray[i]);
+    }
+    return res;
+}
+#undef TensorForEachFunc
 //-----------------------广播---------------------
 
-Tensor Tensor::broadcast(Tensor const &src, Shape const &shape){
+Tensor Tensor::broadcast(const Tensor &src, const Shape &shape){
     //1.形状需要非空
     const auto &srcShape=src.shape;
     if(srcShape.isEmpty()) 

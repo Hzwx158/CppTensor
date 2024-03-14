@@ -1,23 +1,15 @@
 #include "./tensor/tensor.hpp"
+//写代码用
 useStdIO
 using tryAI::Tensor;
 using tryAI::Shape;
-using tryAI::list;
+using tryAI::constant;
+//! std::vector<size_t>被重载，尽量避免使用
+
+//计时用
 #include <chrono>
 #include <fstream>
 using namespace std::chrono;
-// std::vector<size_t>被重载，尽量避免使用
-
-class T{
-public:
-    int b;
-    T(int a):b(a){}
-    void clear() {printf("aaa cleared\n");}
-};
-void pushTest(std::vector<T> &v, size_t n){
-    for(size_t i=0;i<n;++i)
-        v.push_back(T(10));
-}
 std::ofstream ofs("./time.txt");
 int main()
 {
@@ -34,12 +26,15 @@ int main()
     __time=system_clock::now();
 
 #if 1
-    //auto t=new Tensor({1,2,3,4,5,6,7,8,9,10,11,12},{2,2,3});
-    auto t=Tensor::arange(1,13,1,{2,2,3});
-    t.at(list{0,1},list{0,1}).at(1).print();
-    cout<<t;
+    auto t=Tensor::arange(1,13,1,{2,2,3})*constant::pi/2;
+    Tensor p = tryAI::sin(t.at(list{0,1},list{0,1}));
+    p.foreach([](auto &n){
+        if(abs(n)<1e-10){
+            n=0;
+        }
+    });
+    cout<<p<<endl;
 #else
-    printf("%s","1");
 #endif
 // }
     return 0;
