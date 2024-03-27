@@ -5,6 +5,8 @@ namespace tryAI{
 #define atCond(...) \
 at([&](auto &num){ return __VA_ARGS__; })
 
+#define $$(X) .matmul(X)
+
 class Tensor;
 /**
  * @brief 引用张量
@@ -34,19 +36,10 @@ public:
     template<class ...Indices>
     RefTensor at(const size_t &index0, const Indices &...indices) const{
         std::vector<size_t> index({index0, (static_cast<size_t>(indices))...});
-        if(index.empty()||index.size()>shape.dimNumber())
-            throw std::runtime_error("From Tensor::at(const vector &):\n\tWrong size of index");
         const auto argCount=index.size();
-        size_t idx;
-        size_t dimSize;
-        size_t be=0;
-        for(size_t i=0;i<argCount;++i){
-            dimSize=shape.dimSizeOf(i);
-            if(!toBoundedIdx(index[i],dimSize,&idx))
-                throw std::out_of_range("From Tensor::at(const vector &):\n\tOut of range");
-            be+=idx*shape.stepSizeOf(i);
-        }
-        auto resCnt=shape.stepSizeOf(argCount-1);
+        if(index.empty()||argCount>shape.dimNumber())
+            throw std::runtime_error("From Tensor::at(const vector &):\n\tWrong size of index");
+        auto [be,resCnt]=shape.offsetOf(index);
         PtrVector<Number> res(resCnt);
         for(size_t i=0;i<resCnt;++i)
             res[i]=mArray[be+i];
@@ -199,20 +192,13 @@ public:
     template<class ...Indices>
     RefTensor at(size_t index0, Indices ...indices) const{
         std::vector<size_t> index({index0, (static_cast<size_t>(indices))...});
-        if(index.empty()||index.size()>shape.dimNumber())
+        const auto argCount = index.size();
+        if(index.empty()||argCount>shape.dimNumber())
             throw std::runtime_error("From Tensor::at(const vector &):\n\tWrong size of index");
         Number *head=mArray;
         Number *be=head;
-        const auto argCount=index.size();
-        size_t idx;
-        size_t dimSize;
-        for(size_t i=0;i<argCount;++i){
-            dimSize=shape.dimSizeOf(i);
-            if(!toBoundedIdx(index[i],dimSize,&idx))
-                throw std::out_of_range("From Tensor::at(const vector &):\n\tOut of range");
-            be+=idx*shape.stepSizeOf(i);
-        }
-        auto resCnt=shape.stepSizeOf(argCount-1);
+        auto [offset, resCnt] = shape.offsetOf(index);
+        be+=offset;
         PtrVector<Number> res(resCnt);
         for(size_t i=0;i<resCnt;++i)
             res[i]=be+i;
@@ -225,6 +211,7 @@ public:
      * @param index0 下标
      * @param indices 下标
      * @return 一个RefTensor
+     * @todo 下标应该弄成可以broadcast成一致的就OK，并且没写sliced下标
      */
     template<class T, class ...Indices>
     RefTensor at(const list<T> &index0, const Indices &...indices){
@@ -270,6 +257,7 @@ public:
      * @param func 对每个值操作的函数
      */
     void foreach(std::function<void(Number &)> func);
+
     Tensor &operator+=(const Tensor &obj);
     Tensor &operator-=(const Tensor &obj);
     Tensor &operator*=(const Tensor &obj);
@@ -278,10 +266,20 @@ public:
     Tensor operator-(const Tensor &obj) const;
     Tensor operator*(const Tensor &obj) const;
     Tensor operator/(const Tensor &obj) const;
+    Tensor matmul(const Tensor &obj) const;
+
     friend Tensor exp(const Tensor &obj);
     friend Tensor log(const Tensor &obj);
     friend Tensor sigmoid(const Tensor &obj);
     friend Tensor sin(const Tensor &obj);
+    friend Tensor cos(const Tensor &obj);
+    friend Tensor tan(const Tensor &obj);
+    friend Tensor cot(const Tensor &obj);
+    friend Tensor sec(const Tensor &obj);
+    friend Tensor csc(const Tensor &obj);
+    friend Tensor asin(const Tensor &obj);
+    friend Tensor acos(const Tensor &obj);
+    friend Tensor atan(const Tensor &obj);
 };
 inline double abs(double a){return a>0?a:-a;}
 /**
@@ -302,12 +300,16 @@ Tensor log(const Tensor &obj);
  * @return 返回一个张量
 */
 Tensor sigmoid(const Tensor &obj);
-/**
- * @brief 正弦函数sin
- * @param obj 输入张量
- * @return 返回一个张量
-*/
+
 Tensor sin(const Tensor &obj);
+Tensor cos(const Tensor &obj);
+Tensor tan(const Tensor &obj);
+Tensor cot(const Tensor &obj);
+Tensor sec(const Tensor &obj);
+Tensor csc(const Tensor &obj);
+Tensor asin(const Tensor &obj);
+Tensor acos(const Tensor &obj);
+Tensor atan(const Tensor &obj);
 
 }
 /*
@@ -324,5 +326,9 @@ arr.at(list{a,b,c,d})
 tensor({ arr.at(a), arr.at(b), arr.at(c), arr.at(d) })
 
 其中，X是list或tuple都一样
+
+TODO:
+sum/squeeze
+
 
 */

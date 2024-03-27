@@ -44,6 +44,19 @@ Shape Shape::sliced(size_t be) const{
         Vector(product.data()+be, size-be+1)
     );
 }
+
+std::pair<size_t,size_t> Shape::offsetOf(const std::vector<size_t> index) const{
+    const auto argCount=index.size();
+    size_t be=0;
+    for(size_t i=0,dimSize,idx; i<argCount; ++i){
+        dimSize = dimSizeOf(i);
+        if(!toBoundedIdx(index[i],dimSize,&idx))
+            throw std::out_of_range("From Shape::offsetOf(vector):\n\tOut of range");
+        be+=idx*stepSizeOf(i);
+    }
+    auto resCnt=stepSizeOf(argCount-1);
+    return {be,resCnt};
+}
 bool Shape::operator==(const Shape &shape_) const{
     if(&shape_==this) 
         return true;

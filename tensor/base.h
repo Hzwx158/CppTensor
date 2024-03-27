@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <cstdint>
 
 namespace tryAI{
 /**
@@ -81,7 +82,18 @@ struct constant{
 };
 #undef SCD
 
-
+template<class T>
+bool isZeros(const T &obj){
+    const size_t size = sizeof(obj);
+    printf("%llu\n",size);
+    if(size<=1ull)
+        return ! ((*(int8_t*)(&obj)) & static_cast<int8_t>(-1));
+    else if(size<=2)
+        return ! ((*(int16_t*)(&obj)) & static_cast<int16_t>(-1));
+    else if(size<=4)
+        return ! ((*(int32_t*)(&obj)) & static_cast<int32_t>(-1));
+    return ! ((*(int64_t*)(&obj)) & static_cast<int64_t>(-1));
+}
 
 
 

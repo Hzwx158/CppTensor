@@ -11,6 +11,7 @@ using tryAI::constant;
 #include <fstream>
 using namespace std::chrono;
 std::ofstream ofs("./time.txt");
+
 int main()
 {
 //for(int _=0;_<10000;++_){
@@ -24,17 +25,13 @@ int main()
         //ofs<<double(duration.count())<<',';
     });
     __time=system_clock::now();
-
 #if 1
-    auto t=Tensor::arange(1,13,1,{2,2,3})*constant::pi/2;
-    Tensor p = tryAI::sin(t.at(list{0,1},list{0,1}));
-    p.foreach([](auto &n){
-        if(abs(n)<1e-10){
-            n=0;
-        }
-    });
-    cout<<p<<endl;
+    auto t=Tensor::arange(1,5,1,{1,4});
+    auto x=Tensor(1,{4});
+    t $$ (x).print();
 #else
+    char arr[]={1,2,3,4};
+    printf(tryAI::isZeros(arr)?"0":"not");
 #endif
 // }
     return 0;

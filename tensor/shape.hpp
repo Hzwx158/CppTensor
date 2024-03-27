@@ -97,6 +97,12 @@ public:
      * @attention 直接操作指针会引起不必要的麻烦，慎用
     */
     size_t *getProductData() const {return product.data();}
+    /**
+     * @brief 获取某多维坐标对应的起始偏移量，以及该坐标对应的子数组的含元素个数
+     * @param index 多维坐标，如{1,0,-1}
+     * @return 一个pair，first是该坐标对应的起始偏移量，second是该子数组含元素个数
+    */
+    std::pair<size_t,size_t> offsetOf(const std::vector<size_t> index) const;
     Shape &operator=(const Shape &)=default;
     Shape &operator=(Shape &&)=default;
     bool operator==(const Shape &shape_) const;
