@@ -118,7 +118,9 @@ public:\
         delete[] mArray;\
         mArray=obj.mArray;\
         __size=obj.__size;\
+        __alloc=obj.__alloc;\
         obj.mArray=nullptr;\
+        obj.__size = obj.__alloc=0;\
         return *this;\
     }\
     T &operator[](size_t idx) const{\
@@ -139,6 +141,18 @@ public:
     //INIT_LIST_CONSTRUCTOR(vector, int, size_t)
     //INIT_LIST_CONSTRUCTOR(vector, unsigned, size_t)
     //INIT_LIST_CONSTRUCTOR(vector, long long, size_t)
+    
+    friend ostream &operator<<(ostream &osm, const vector<size_t> &vec){
+        const auto size=vec.size();
+        osm<<'{';
+        for(size_t i=0;i<size;++i){
+            osm<<vec[i];
+            if(i+1!=size)
+                osm<<',';
+        }
+        osm<<'}';
+        return osm;
+    }
 };
 }
 /*

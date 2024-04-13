@@ -257,7 +257,16 @@ public:
      * @param func 对每个值操作的函数
      */
     void foreach(std::function<void(Number &)> func);
-
+    /**
+     * @brief 缩减长度是1的维度
+    */
+    void squeeze() {shape.squeeze();}
+    /**
+     * @brief 缩减长度是1的维度
+     * @param dim 维度数. 如果该维度长度非1, 会报错
+    */
+    void squeeze(size_t dim){shape.squeeze(dim);}
+    
     Tensor &operator+=(const Tensor &obj);
     Tensor &operator-=(const Tensor &obj);
     Tensor &operator*=(const Tensor &obj);

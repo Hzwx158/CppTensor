@@ -26,9 +26,9 @@ int main()
     });
     __time=system_clock::now();
 #if 1
-    auto t=Tensor::arange(1,5,1,{1,4});
-    auto x=Tensor(1,{4});
-    t $$ (x).print();
+    auto t=Tensor::arange(0,12,1,{1, 12, 1});
+    t.squeeze(2);
+    t.print();
 #else
     char arr[]={1,2,3,4};
     printf(tryAI::isZeros(arr)?"0":"not");

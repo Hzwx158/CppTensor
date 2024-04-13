@@ -106,6 +106,7 @@ RefTensor Tensor::at(std::function<bool(const Number &)> cond) const{
     return res;
 }
 
+
 //-----------------------广播---------------------
 
 Tensor Tensor::broadcast(const Tensor &src, const Shape &shape){

@@ -95,7 +95,5 @@ bool isZeros(const T &obj){
     return ! ((*(int64_t*)(&obj)) & static_cast<int64_t>(-1));
 }
 
-
-
 }
 #endif

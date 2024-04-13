@@ -57,6 +57,54 @@ std::pair<size_t,size_t> Shape::offsetOf(const std::vector<size_t> index) const{
     auto resCnt=stepSizeOf(argCount-1);
     return {be,resCnt};
 }
+
+void Shape::squeeze(size_t dim){
+    const auto oldDimNumber = dimNumber();
+    if(!toBoundedIdx(dim, oldDimNumber, &dim))
+        throw std::out_of_range("From Tensor::squeeze(size_t):\n\tout of range");
+    if(dimSizeOf(dim)!=1)
+        throw std::runtime_error("From Tensor::squeeze(size_t):\n\tdimSizeOf(dim) is not 1");
+    const auto oldShapeBegin = shape.data();
+    Vector newShapeVec(oldDimNumber-1); //仅去掉一个维
+    const auto newShapeBegin  = newShapeVec.data();
+    if(dim)
+        memcpy(newShapeBegin, oldShapeBegin, dim*sizeof(size_t));
+    if(oldDimNumber-dim-1)
+        memcpy(newShapeBegin+dim, oldShapeBegin+dim+1, (oldDimNumber-dim-1)*sizeof(size_t));
+    shape = std::move(newShapeVec);
+    //对product类似操作
+    const auto oldProductBegin = product.data();
+    Vector newShapeProduct(oldDimNumber);
+    const auto newProductBegin = newShapeProduct.data();
+    memcpy(newProductBegin, oldProductBegin, (dim+1)*sizeof(size_t));
+    if(oldDimNumber-dim-1)
+        memcpy(newProductBegin+dim+1, oldProductBegin+dim+2, (oldDimNumber-dim-1)*sizeof(size_t));
+    product = std::move(newShapeProduct);
+}
+void Shape::squeeze(){ //TODO: 可以对比一下，是开俩数组memcpy导一遍快，还是循环两遍快
+    const auto oldDimNumber = dimNumber();
+    if(!oldDimNumber)
+        return;
+    size_t cnt1=0;
+    for(size_t i = 0; i<oldDimNumber; ++i){
+        if(shape[i]==1)
+            ++cnt1;
+    }
+    if(!cnt1) //没有1
+        return; 
+    Vector newShape(oldDimNumber-cnt1);
+    Vector newProduct(oldDimNumber-cnt1+1);
+    newProduct[0]=product[0];
+    size_t idx=0;
+    for(size_t i=0; i<oldDimNumber; ++i){
+        if(shape[i]==1) continue;
+        newShape[idx]=shape[i];
+        newProduct[++idx]=product[i+1];
+    }
+    shape = std::move(newShape);
+    product = std::move(newProduct);
+}
+
 bool Shape::operator==(const Shape &shape_) const{
     if(&shape_==this) 
         return true;

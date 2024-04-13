@@ -103,6 +103,16 @@ public:
      * @return 一个pair，first是该坐标对应的起始偏移量，second是该子数组含元素个数
     */
     std::pair<size_t,size_t> offsetOf(const std::vector<size_t> index) const;
+    /**
+     * @brief 缩减长度是1的维度
+    */
+    void squeeze();
+    /**
+     * @brief 缩减长度是1的维度
+     * @param dim 维度数. 如果该维度长度非1, 会报错
+    */
+    void squeeze(size_t dim);
+
     Shape &operator=(const Shape &)=default;
     Shape &operator=(Shape &&)=default;
     bool operator==(const Shape &shape_) const;
