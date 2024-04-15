@@ -29,6 +29,23 @@ Tensor::Tensor(Number num, const Shape &shape_)
     for(size_t i=0;i<size;++i)
         mArray[i]=num;
 }
+Tensor::Tensor(const std::vector<Tensor> &tensors, const Shape &shape_)
+{
+    if((!shape_.isEmpty())&&tensors.size()!=shape_.bufSize())
+        throw std::runtime_error("From Tensor::Tensor(vector<Tensor>, Shape):\n\tWrong shape");
+    const size_t tCnt=tensors.size();
+    for(size_t i=0;i<tCnt-1;++i)
+        if(tensors[i].shape!=tensors[i+1].shape)
+            throw std::runtime_error("From Tensor::Tensor(vector<Tensor>, Shape):\n\tTensors should have same shape");
+    shape = shape_ + tensors[0].shape;
+    mArray = new Number[shape.bufSize()];
+#if DEBUG
+    std::cout<<"Tensor Alloc @"<<static_cast<void*>(mArray)<<'['<<shape.bufSize()<<']'<<std::endl;
+#endif
+    const size_t stepSize = tensors[0].shape.bufSize();
+    for(size_t i=0;i<tCnt;++i)
+        memcpy(mArray+i*stepSize, tensors[i].mArray, sizeof(Number)*stepSize);
+}
 Tensor::Tensor(const Tensor &obj)
 :mArray(new Number[obj.shape.bufSize()])
 ,shape(obj.shape)

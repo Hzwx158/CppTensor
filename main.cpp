@@ -1,9 +1,11 @@
-#include "./tensor/tensor.hpp"
+#include "./autograd/node_op.hpp"
 //写代码用
 useStdIO
 using tryAI::Tensor;
 using tryAI::Shape;
 using tryAI::constant;
+using tryAI::autograd::gradient;
+using tryAI::autograd::Variable;
 //! std::vector<size_t>被重载，尽量避免使用
 
 //计时用
@@ -26,12 +28,18 @@ int main()
     });
     __time=system_clock::now();
 #if 1
-    auto t=Tensor::arange(0,12,1,{1, 12, 1});
-    t.squeeze(2);
-    t.print();
+    auto x=*Variable("x");
+    auto y=*Variable("y");
+    auto z = x+*(x*y);
+    cout<<"z="<<*z<<endl;
+    auto res = gradient(z, {&x,&y});
+    cout<<*res[0]<<'\n'<<*res[1]<<endl;
+    x.freeAllAnnoymous();
 #else
-    char arr[]={1,2,3,4};
-    printf(tryAI::isZeros(arr)?"0":"not");
+    std::string *p=new std::string("a");
+    std::string_view s=*p;
+    delete p;
+    cout<<s<<endl;
 #endif
 // }
     return 0;

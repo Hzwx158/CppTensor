@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <cstdint>
+#include <cassert>
 
 namespace tryAI{
 /**

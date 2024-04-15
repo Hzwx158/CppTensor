@@ -105,9 +105,16 @@ public://Memory
     Tensor(std::initializer_list<Number> init_list, const Shape &shape_=Shape());
     /**
      * @brief 构造函数
-     * @param num 数字
+     * @param num 数字，初始化值
+     * @param shape_ 初始化形状，不填默认为形状{}(即数字)
     */
     Tensor(Number num, const Shape &shape_=Shape({}));
+    /**
+     * @brief 构造函数，构造高维tensor
+     * @param tensors 一堆形状一致的tensor
+     * @param shape_ 这些tensor的形状，默认填充为{tensors.size(), (tensors[0].shape...)}
+    */
+    Tensor(const std::vector<Tensor> &tensors, const Shape &shape_=Shape());
     /**
      * @brief 拷贝构造函数
      * @attention 会新分配内存

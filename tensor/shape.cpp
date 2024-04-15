@@ -116,6 +116,19 @@ bool Shape::operator==(const Shape &shape_) const{
             return false;
     return true;
 }
+Shape Shape::operator+(const Shape &shape_) const {
+    const size_t s1 = shape.size();
+    const size_t s2 = shape_.shape.size();
+    Shape res{Vector(s1+s2), Vector(s1+s2+1)};
+    memcpy(res.shape.data(), shape.data(), s1*Vector::sizeOfT);
+    memcpy(res.shape.data()+s1, shape_.shape.data(), s2*Vector::sizeOfT);
+    memcpy(res.product.data(), product.data(), s1*Vector::sizeOfT);
+    memcpy(res.product.data()+s1, shape_.product.data(), (s2+1)*Vector::sizeOfT);
+    const size_t s2len=shape_.bufSize();
+    for(size_t i=0;i<s1;++i)
+        res.product[i]*=s2len;
+    return res;
+}
 std::ostream &operator<<(std::ostream &osm, const Shape &obj){
     if(obj.isEmpty())
         return osm<<"(empty)";

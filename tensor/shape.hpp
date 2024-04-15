@@ -117,6 +117,7 @@ public:
     Shape &operator=(Shape &&)=default;
     bool operator==(const Shape &shape_) const;
     bool operator!=(const Shape &shape_) const {return !((*this)==shape_);}
+    Shape operator+(const Shape &shape_) const;
     H_OUTPUTABLE(Shape)
 };
 
