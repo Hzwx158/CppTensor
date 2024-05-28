@@ -1,8 +1,8 @@
-#include "./tensor.hpp"
+#include "./shapedarray.hpp"
 namespace tryAI{
-//-----------------------RefTensor---------------------
+//-----------------------ShapedRefArray---------------------
 
-RefTensor::RefTensor(const PtrVector<Number> &init_list)
+ShapedRefArray::ShapedRefArray(const PtrVector<Number> &init_list)
 :mArray(nullptr), shape({init_list.size()})
 {
     auto size=init_list.size();
@@ -12,17 +12,17 @@ RefTensor::RefTensor(const PtrVector<Number> &init_list)
     }
     mArray=new NumberPtr[size];
 #if DEBUG
-    std::cout<<"RefTensor Alloc @"<<static_cast<void*>(mArray)<<'['<<size<<']'<<std::endl;
+    std::cout<<"ShapedRefArray Alloc @"<<static_cast<void*>(mArray)<<'['<<size<<']'<<std::endl;
     //std::cout<<"shape:"<<shape<<std::endl;
 #endif
     memcpy(mArray, init_list.data(), size*init_list.sizeOfT);
 }
-RefTensor::RefTensor(RefTensor &&obj)
+ShapedRefArray::ShapedRefArray(ShapedRefArray &&obj)
 :mArray(obj.mArray), shape(std::move(obj.shape))
 {
     obj.mArray=nullptr;
 }
-RefTensor::RefTensor(const std::vector<RefTensor> &refTensors)
+ShapedRefArray::ShapedRefArray(const std::vector<ShapedRefArray> &refTensors)
 :mArray(nullptr),shape()
 {
     if(refTensors.empty()) return;
@@ -33,7 +33,7 @@ RefTensor::RefTensor(const std::vector<RefTensor> &refTensors)
         //浪费时间，但不会反复new delete
         for(auto iter=refTensors.begin()+1;iter!=refTensors.end();++iter)
             if(be.shape!=iter->shape)
-                throw std::runtime_error("From RefTensor(const vector<Ref> &):\n\tWrong shape");
+                throw std::runtime_error("From ShapedRefArray(const vector<Ref> &):\n\tWrong shape");
     }
     //计算新shape
     const auto shapeDimNumber=be.shape.dimNumber();//shape原本维度数
@@ -51,7 +51,7 @@ RefTensor::RefTensor(const std::vector<RefTensor> &refTensors)
     //分配内存并拷贝
     mArray=new NumberPtr[shapeBufSize*argSize];
 #if DEBUG
-    std::cout<<"RefTensor Alloc @"<<static_cast<void*>(mArray)<<'['<<shapeBufSize*argSize<<']'<<std::endl;
+    std::cout<<"ShapedRefArray Alloc @"<<static_cast<void*>(mArray)<<'['<<shapeBufSize*argSize<<']'<<std::endl;
 #endif
     for(size_t i=0;i<argSize;++i)
         memcpy(
@@ -60,46 +60,48 @@ RefTensor::RefTensor(const std::vector<RefTensor> &refTensors)
             shapeBufSize*sizeof(NumberPtr)
         );
 }
-RefTensor::~RefTensor()
+ShapedRefArray::~ShapedRefArray()
 {
     if(mArray){
 #if DEBUG
-    std::cout<<"RefTensor Free @"<<static_cast<void*>(mArray)<<std::endl;
+    std::cout<<"ShapedRefArray Free @"<<static_cast<void*>(mArray)<<std::endl;
 #endif
         delete[] mArray;
     }
     shape.clear();
 }
-void RefTensor::operator=(RefTensor &&obj){
-    this->~RefTensor();
+void ShapedRefArray::operator=(ShapedRefArray &&obj){
+    this->~ShapedRefArray();
     mArray=obj.mArray;
     shape=std::move(obj.shape);
     obj.mArray=nullptr;
 }
-void RefTensor::operator=(const Tensor &obj){
-    //Tensor obj1=Tensor::broadcast(obj, shape);
-    if(obj.shape.bufSize()!=shape.bufSize())
-        throw std::runtime_error("@Author: When not broadcast, it's wrong shape from RefTensor::operator=");
+void ShapedRefArray::operator=(const ShapedArray &obj){
+    Shape resShape = Shape::broadcast(shape, obj.shape);
+    if(resShape!=shape)
+        throw std::runtime_error("From ShapedRefArray::operator=:\n\t<obj.shape> can't broadcast to <shape>");
     Number *oP=obj.mArray;
     auto size=shape.bufSize();
     for(size_t i=0;i<size;++i)
-        *(mArray[i])=oP[i];
+    {
+        *(mArray[i])=oP[Shape::offsetBeforeBroadcast(i, shape, obj.shape)];
+    }
 }
-Tensor RefTensor::asTensor() const {
+ShapedArray ShapedRefArray::asTensor() const {
     const auto bufSize=shape.bufSize();
     UniquePointer<Number> ptr=new Number[bufSize];
 #if DEBUG
-    std::cout<<"Tensor Alloc @"<<static_cast<void*>(ptr)<<'['<<bufSize<<']'<<std::endl;
+    std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<bufSize<<']'<<std::endl;
 #endif
     for(size_t i=0;i<bufSize;++i)
         ptr[i]=**(mArray+i);
-    return Tensor(std::move(ptr), shape);
+    return ShapedArray(std::move(ptr), shape);
 }
-RefTensor::operator Tensor(){
+ShapedRefArray::operator ShapedArray(){
     return asTensor();
 }
-std::ostream &operator<<(std::ostream &osm, const RefTensor &obj){
-    printShaped<RefTensor::NumberPtr>(
+std::ostream &operator<<(std::ostream &osm, const ShapedRefArray &obj){
+    printShaped<ShapedRefArray::NumberPtr>(
         obj.mArray,obj.shape,osm,
         [](std::ostream &osm, auto &ele){
             osm<<(*ele);

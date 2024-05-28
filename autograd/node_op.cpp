@@ -9,11 +9,12 @@ const PlaceHolderOp *placeHolderOp = new PlaceHolderOp();
 const AddOp *addOp = new AddOp();
 const MulOp *mulOp = new MulOp();
 #undef DEFINE_VARS
+/*
 #define DefineCompute(ClassName) \
 Operator::ValueType ClassName::compute(\
     const ExprNode *node,\
     const std::vector<ValueType> &varValues\
-) const
+) const*/
 #define DefineGrad(ClassName) \
 Operator::Nodes ClassName::grad(\
     const ExprNode *node,\
@@ -22,76 +23,87 @@ Operator::Nodes ClassName::grad(\
 #define DefineMakeNode(ClassName)\
 ExprNode *ClassName::makeNode(const Nodes &nodes) const
 //OnesLikeOp
-DefineCompute(OnesLikeOp){
-    assert(varValues.size()==1);
-    return Tensor::ones(varValues[0].getShape());
-}
 DefineGrad(OnesLikeOp){
+    assert(node->needGrad);
     return {zerosLikeOp->makeNode({node->children[0]})};
+    //不管孩子需不需要求导，都是zeroLike(child)
 }
 DefineMakeNode(OnesLikeOp){
     assert(nodes.size()==1);
+    auto &node=nodes[0];
     return new ExprNode(
-        "onesLike("+nodes[0]->name+")",
-        onesLikeOp,{nodes[0]}
+        Tensor::ones(node->value.getShape()),
+        onesLikeOp,{node}
     );
 }
 //ZerosLikeOp
-DefineCompute(ZerosLikeOp){
-    assert(varValues.size()==1);
-    return Tensor::zeros(varValues[0].getShape());
-}
 DefineGrad(ZerosLikeOp){
+    assert(node->needGrad);
     return {zerosLikeOp->makeNode({node->children[0]})};
 }
 DefineMakeNode(ZerosLikeOp){
     assert(nodes.size()==1);
+    auto &node=nodes[0];
     return new ExprNode(
-        "zerosLike("+nodes[0]->name+")",
-        zerosLikeOp,{nodes[0]}
+        Tensor::zeros(node->value.getShape()),
+        zerosLikeOp,{node}
     );
 }
 //AddOp
-DefineCompute(AddOp){
-    assert(varValues.size()==2);
-    return varValues[0]+varValues[1];
-}
 DefineGrad(AddOp){
-    return Nodes{pre_grad, pre_grad};
+    auto &child0 = node->children[0];
+    auto &child1 = node->children[1];
+    if(child0->needGrad && child1->needGrad)
+        return Nodes{pre_grad, pre_grad};
+    else if(node->needGrad)
+        return {pre_grad};
+    return {};
 }
 DefineMakeNode(AddOp){
     assert(nodes.size()==2);
+    auto &node0 = nodes[0];
+    auto &node1 = nodes[1];
     return new ExprNode(
-        "("+nodes[0]->name+"+"+nodes[1]->name+")",
-        addOp, nodes
+        node0->value+node1->value,
+        addOp, nodes,
+        node0->needGrad || node1->needGrad
     );
 }
 //MulOp
-DefineCompute(MulOp){
-    assert(varValues.size()==2);
-    return varValues[0]*varValues[1];
-}
 DefineGrad(MulOp){
-    return Nodes{
-        (*pre_grad)*(*node->children[1]),
-        (*pre_grad)*(*node->children[0])
-    };
+    auto &child0 = node->children[0];
+    auto &child1 = node->children[1];
+    if(child0->needGrad && child1->needGrad)
+        return Nodes{
+            pre_grad->mul(child1), 
+            pre_grad->mul(child0)
+        };
+    else if(child0->needGrad)
+        return {pre_grad->mu};//TODO: 常量怎么表示？
+    else if(child1->needGrad)
+        //...
+        return ababa;
+    return {};
 }
 DefineMakeNode(MulOp){
     assert(nodes.size()==2);
     return new ExprNode(
-        "("+nodes[0]->name+"*"+nodes[1]->name+")",
+        nodes[0]->value*nodes[1]->value,
         mulOp, nodes
     );
 }
 //TODO:other op
-#undef DefineCompute
+//#undef DefineCompute
 #undef DefineGrad
 #undef DefineMakeNode
 //ExprNode
 static std::vector<const ExprNode *> annoymous_ptrs;
-ExprNode::ExprNode(std::string_view name_, const Operator *op_, const PtrVector<const ExprNode> &children_, const ValueType &const_value_)
-:children(children_), op(op_), const_value(const_value_), name(name_){
+ExprNode::ExprNode(
+    const ValueType &value_, 
+    const Operator *op_, 
+    const PtrVector<const ExprNode> &children_,
+    bool needGrad_
+):children(children_), op(op_), value(value_), needGrad(needGrad_){
     //std::cout<<"ExprNode.create@"<<static_cast<void*>(this)<<std::endl;
     if(!op->isLeaf())
         annoymous_ptrs.push_back(this);
@@ -105,7 +117,7 @@ void ExprNode::freeAllAnnoymous(){
     annoymous_ptrs.clear();
 }
 std::ostream &operator<<(std::ostream &osm, const ExprNode &obj){
-    return osm<<obj.name;
+    return osm<<"{@"<<&obj<<", value:"<<obj.value<<'}';
 }
 
 
@@ -152,14 +164,17 @@ PtrVector<const ExprNode> gradient(
         child_grads = cur->op->grad(cur, cur_grad); //每个孩子脑袋上的梯度
         cCnt = cur->children.size();
         assert(cCnt==child_grads.size());
-        for(size_t j=0;j<cCnt;++j){
+        for(size_t j=0, jj=0;jj<cCnt;++jj){
             child = cur->children[j];
+            if(!child->needGrad)//这个孩子不求导，略过
+                continue;
             //把孩子脑袋上的梯度加在一起
             if(var_grad_map.count(child)){
                 auto &tmp = var_grad_map.at(child);
-                tmp = (*tmp)+(*child_grads[j]);
+                tmp = tmp->add(child_grads[j]);
             }
             else var_grad_map.insert({child, child_grads[j]});
+            ++j;
         }
     }
     cnt = variables.size();

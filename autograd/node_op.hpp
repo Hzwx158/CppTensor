@@ -19,8 +19,9 @@ struct Operator{
      * @param node 子树起点/根
      * @param varValues 孩子们的值
      * @return 计算的值
-    */
+
     virtual ValueType compute(const ExprNode *node, const std::vector<ValueType> &varValues) const = 0;
+    /*
     /**
      * @brief 创建一个以本Op为.op的ExprNode对象
      * @param nodes 孩子们
@@ -36,17 +37,11 @@ struct Operator{
     virtual bool isLeaf() const {return false;}
 };
 
-// const int TTTTT = sizeof(std::string);
 
 struct PlaceHolderOp: Operator{
     using ValueType = Operator::ValueType;
     using Nodes = PtrVector<const ExprNode>;
-    Nodes grad(const ExprNode *node, const ExprNode *pre_grad) const override final{
-        return {};
-    }
-    ValueType compute(const ExprNode *node, const std::vector<ValueType> &varValues) const override final{
-        throw std::runtime_error("From PlaceHolderOp::compute:\n\tValue should be given, not through this function");
-    }
+    Nodes grad(const ExprNode *node, const ExprNode *pre_grad) const override final{return {};}
     bool isLeaf() const override final{return true;}
 };
 #define Autograd_Op_Decl(ClassName)\
@@ -54,7 +49,6 @@ struct ClassName: Operator{\
     using ValueType = Operator::ValueType;\
     using Nodes = PtrVector<const ExprNode>;\
     Nodes grad(const ExprNode *node, const ExprNode *pre_grad) const override final;\
-    ValueType compute(const ExprNode *node, const std::vector<ValueType> &varValues) const override final;\
     ExprNode *makeNode(const Nodes &nodes) const override final; \
 };
 
@@ -98,22 +92,32 @@ struct ExprNode //data是Operator*、const_value的Tree Node
     using ValueType = Operator::ValueType;
     PtrVector<const ExprNode> children; //一般只有俩，万一有二班呢（？）
     const Operator * const op;
-    const ValueType const_value;
-    const std::string name;
+    ValueType value;
+    const bool needGrad; //脑袋上有没有梯度
 
-    ExprNode(std::string_view name_, const Operator *op_, const PtrVector<const ExprNode> &children_, const ValueType &const_value_=ValueType(0));
+    ExprNode(
+        const ValueType &value_ = ValueType(0), 
+        const Operator *op_ = placeHolderOp, 
+        const PtrVector<const ExprNode> &children_ = {},
+        bool needGrad_=true);
     ~ExprNode();
+    /**
+     * @brief 静态函数，释放目前所有的匿名结点(非Leaf结点)
+    */
     static void freeAllAnnoymous();
 
     H_OUTPUTABLE(ExprNode)
-    ExprNode *operator+(const ExprNode &node) const{
-        return addOp->makeNode({this, &node});
+    ExprNode *add(const ExprNode *node) const {
+        return addOp->makeNode({this, node});
     }
-    ExprNode *operator*(const ExprNode &node) const{
-        return mulOp->makeNode({this, &node});
+    ExprNode *mul(const ExprNode *node) const {
+        return mulOp->makeNode({this, node});
+    }
+    ExprNode *mul(const ValueType &value_) const {
+        return mulOp->makeNode({})//TODO: 常量怎么表示？
     }
 };
-//TODO 把表达式树和求值直接融合在一起，创建Variable的时候就赋值
+
 /**
  * @brief 求导，dy/dx
  * @param expression 表达式树根节点，y
@@ -128,8 +132,15 @@ PtrVector<const ExprNode> gradient(const ExprNode *expression, const PtrVector<c
  * @return 值
 */
 Operator::ValueType compute(const ExprNode *expression, const std::map<const ExprNode *, Tensor> &varValueMap);
-inline ExprNode *Variable(std::string_view name){
-    auto res = new ExprNode(name, placeHolderOp, {});
+inline ExprNode *Variable(const ExprNode::ValueType &value){
+    auto res = new ExprNode(value);
     return res;
 }
+
+
+// const int TTTTT = sizeof(ExprNode);
+
+
+
+
 }

@@ -4,12 +4,13 @@ import timeit
 
 timer=timeit.default_timer()
 
-x=torch.tensor([1.], requires_grad=True)
-y=torch.tensor([3.], requires_grad=True)
-z=2*x*x+y
-z.backward()
-print(x.grad)
+a = np.array([1,2,3,4,5,6,7,8]).reshape((2,2,2))
+# print(a)
+for i in range(2):
+    a[[1,i],[i,1]]+=[i+1,i-2]
+# print(a)
+'''
 
+'''
 
-
-print(str((timeit.default_timer()-timer)*1000)+',')
+print(str((timeit.default_timer()-timer)*1000)+'ms')
