@@ -5,6 +5,8 @@ useStdIO
 using tryAI::ShapedArray;
 using tryAI::Shape;
 using tryAI::constant;
+using tryAI::Slice;
+using tryAI::SimpleShapedArray;
 // using tryAI::autograd::gradient;
 // using tryAI::autograd::Variable;
 //! std::vector<size_t>被重载，尽量避免使用
@@ -14,6 +16,15 @@ using tryAI::constant;
 #include <fstream>
 using namespace std::chrono;
 std::ofstream ofs("./time.txt");
+
+template<class ...Args>
+void func(Args... args){
+    size_t k=0;
+    std::vector<size_t> res{
+        (args, k++)...
+    };
+    cout<<res<<endl;
+}
 
 
 
@@ -42,22 +53,24 @@ int main()
     // delete x;
     // delete y;
     
-    auto t = tryAI::arange(1, 13, 1, {2,2,3});
+    ShapedArray t{1,2,3,4,5,6,7,8,9,10,11,12};
+    t.reshape({2,2,3});
     cout<<t<<endl;
     auto p = t.at(
         slist(slist(1),slist(0)),
-        1, 
-        slist(2,1)
+        1,
+        Slice(1,3)
     );
-    cout<<p<<endl;
+    std::cout<<p<<endl;
+
 #else
-    func({1,2,3,4});
+    func(1,2,3,49,0);
 #endif
 }
     return 0;
 }
 /*
-TODO : Slice怎么搞, at下标需要改成可broadcast成一致的即可
+TODO : Slice如何被设置为单个的然后被broadcast（SimpleShapedArray已实现）？
 
 TODO : 把ShapedArray拼接的构造函数改为ShapedArray::stack；写一个vector of vector of vector... => ShapedArray的构造函数（必要的话）
 TODO : 在tensor mul 常量怎么表示？Variable怎么设置？

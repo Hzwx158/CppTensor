@@ -43,7 +43,7 @@ Shape Shape::sliced(size_t be) const{
     );
 }
 
-std::pair<size_t,size_t> Shape::offsetOf(const std::vector<size_t> index) const{
+std::pair<size_t,size_t> Shape::offsetOf(const std::vector<size_t> &index) const{
     const auto argCount=index.size();
     size_t be=0;
     for(size_t i=0,dimSize,idx; i<argCount; ++i){

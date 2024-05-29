@@ -4,22 +4,22 @@ namespace tryAI{
 
 //--------------------------ShapedArrayView----------------------
 
-ShapedArrayView::ShapedArrayView(const Number *mBegin_, const Shape &shape_)
-:mBegin(mBegin_), shape(shape_){}
-ShapedArrayView::ShapedArrayView(const ShapedArray &shapedArray)
-:mBegin(shapedArray.mArray), shape(shapedArray.shape){}
-ShapedArrayView ShapedArrayView::operator[](size_t idx) const
-{
-    if(!toBoundedIdx(idx, shape.dimSizeOf(0),&idx))
-        throw std::out_of_range("From ShapedArrayView::operator[](size_t):\n\t<idx> out of range");
-    auto tmp = shape.offsetOf({idx});
-    // std::cout<<"view at<"<<(void*)this<<">\n\tb:"<<(void*)mBegin<<"\n\tidx:"<<idx<<"\n\ts:"<<shape<<'\n';
-    // std::cout<<"\tb+offset:"<<(void*)(mBegin+tmp.first)<<'\n';
-    return ShapedArrayView(
-        mBegin+tmp.first,
-        shape.sliced(1)
-    );
-}
+// ShapedArrayView::ShapedArrayView(const Number *mBegin_, const Shape &shape_)
+// :mBegin(mBegin_), shape(shape_){}
+// ShapedArrayView::ShapedArrayView(const ShapedArray &shapedArray)
+// :mBegin(shapedArray.mArray), shape(shapedArray.shape){}
+// ShapedArrayView ShapedArrayView::operator[](size_t idx) const
+// {
+//     if(!toBoundedIdx(idx, shape.dimSizeOf(0),&idx))
+//         throw std::out_of_range("From ShapedArrayView::operator[](size_t):\n\t<idx> out of range");
+//     auto tmp = shape.offsetOf({idx});
+//     // std::cout<<"view at<"<<(void*)this<<">\n\tb:"<<(void*)mBegin<<"\n\tidx:"<<idx<<"\n\ts:"<<shape<<'\n';
+//     // std::cout<<"\tb+offset:"<<(void*)(mBegin+tmp.first)<<'\n';
+//     return ShapedArrayView(
+//         mBegin+tmp.first,
+//         shape.sliced(1)
+//     );
+// }
 
 //--------------------------------内存---------------------------
 
@@ -146,7 +146,7 @@ void ShapedArray::foreach(std::function<void(Number&)> func){
     for(size_t i=0;i<size;++i)
         func(head[i]);
 }
-ShapedRefArray ShapedArray::at(std::function<bool(const Number &)> cond) const{
+ShapedRefArray ShapedArray::where(std::function<bool(const Number &)> cond) const{
     const auto size=shape.bufSize();
     Number *head=mArray;
     PtrVector<Number> res(size);
@@ -156,6 +156,18 @@ ShapedRefArray ShapedArray::at(std::function<bool(const Number &)> cond) const{
             res[k++]=(head+i);
     res.shrinkTo(k);
     return res;
+}
+
+ShapedArray::Number **ShapedArray::atByNumbers(const std::vector<size_t> &index, Number **resBegin) const
+{
+    const auto argCount = index.size();
+    if(index.empty()||argCount>shape.dimNumber())
+        throw std::runtime_error("From ShapedArray::at(const vector &):\n\tWrong size of index");
+    auto [offset, resCnt] = shape.offsetOf(index);
+    Number *be=mArray+offset;
+    for(size_t i=0;i<resCnt;++i)
+        resBegin[i]=be+i;
+    return resBegin+resCnt;
 }
 
 //----------------------静态/友元--------------------------

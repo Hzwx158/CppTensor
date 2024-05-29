@@ -17,6 +17,9 @@ ShapedRefArray::ShapedRefArray(const PtrVector<Number> &init_list)
 #endif
     memcpy(mArray, init_list.data(), size*init_list.sizeOfT);
 }
+ShapedRefArray::ShapedRefArray(Number**buf, const Shape &shape_)
+:mArray(buf), shape(shape_){}
+
 ShapedRefArray::ShapedRefArray(ShapedRefArray &&obj)
 :mArray(obj.mArray), shape(std::move(obj.shape))
 {

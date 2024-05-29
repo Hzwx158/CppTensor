@@ -11,6 +11,7 @@ namespace tryAI{
  * @return 如果不合理，返回nullptr；合理返回res
  */
 size_t *toBoundedIdx(size_t idx, size_t bufSize, size_t *res);
+class Index;
 }
 #define VECTOR_OPTIMIZE 1
 #if VECTOR_OPTIMIZE
@@ -53,8 +54,8 @@ public:\
         ,__size(size_)\
     {\
         if(!__size) return;\
-        if((!init)||(!(init+1)))\
-            memset(mArray, init, __size*sizeOfT);\
+        if(tryAI::isZeros(init))\
+            memset(mArray, 0, __size*sizeOfT);\
         else for(size_t i=0;i<__size;++i)\
             mArray[i]=init;\
     }\
@@ -142,7 +143,6 @@ public:
     //INIT_LIST_CONSTRUCTOR(vector, int, size_t)
     //INIT_LIST_CONSTRUCTOR(vector, unsigned, size_t)
     //INIT_LIST_CONSTRUCTOR(vector, long long, size_t)
-    
     friend ostream &operator<<(ostream &osm, const vector<size_t> &vec){
         const auto size=vec.size();
         osm<<'{';

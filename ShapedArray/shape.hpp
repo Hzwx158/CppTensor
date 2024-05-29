@@ -112,11 +112,11 @@ public:
     */
     size_t *getProductData() const {return product.data();}
     /**
-     * @brief 获取某多维坐标对应的起始偏移量，以及该坐标对应的子数组的含元素个数
+     * @brief 获取某多维坐标对应的起始偏移量，以及该坐标对应的子数组的含元素(即数字)个数
      * @param index 多维坐标，如{1,0,-1}
-     * @return 一个pair，first是该坐标对应的起始偏移量，second是该子数组含元素个数
+     * @return 一个pair，first是该坐标对应的起始偏移量，second是该子数组含元素(即数字)个数
     */
-    std::pair<size_t,size_t> offsetOf(const std::vector<size_t> index) const;
+    std::pair<size_t,size_t> offsetOf(const std::vector<size_t> &index) const;
     /**
      * @brief 缩减长度是1的维度
     */

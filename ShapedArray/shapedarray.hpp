@@ -1,9 +1,10 @@
 #ifndef CPPTENSOR_SHAPEDARRAY__H
 #define CPPTENSOR_SHAPEDARRAY__H
 #include "./shapedRefArray.hpp"
+#include "./index.hpp"
 namespace tryAI{
 #define atCond(...) \
-at([&](auto &num){ return __VA_ARGS__; })
+where([&](auto &num){ return __VA_ARGS__; })
 
 #define $$(X) .matmul(X)
 
@@ -18,20 +19,20 @@ struct IsShapedArray<ShapedArray>{
     static constexpr bool flag = true;
 };
 
-struct ShapedArrayView
-{
-    using Number=double; //数字类 TODO以后换成一个自动分配的Number
-    const Number *mBegin;
-    Shape shape;
-    ShapedArrayView():mBegin(nullptr), shape(){}
-    ShapedArrayView(const Number *mBegin_, const Shape &shape_);
-    ShapedArrayView(const ShapedArray &shapedArray);
-    ShapedArrayView(const ShapedArrayView &)=default;
-    ShapedArrayView(ShapedArrayView &&)=default;
-    ShapedArrayView operator[](size_t idx) const;
-    ShapedArrayView &operator=(const ShapedArrayView &)=default;
-    ShapedArrayView &operator=(ShapedArrayView &&)=default;
-};
+// struct ShapedArrayView
+// {
+//     using Number=double; //数字类 TODO以后换成一个自动分配的Number
+//     const Number *mBegin;
+//     Shape shape;
+//     ShapedArrayView():mBegin(nullptr), shape(){}
+//     ShapedArrayView(const Number *mBegin_, const Shape &shape_);
+//     ShapedArrayView(const ShapedArray &shapedArray);
+//     ShapedArrayView(const ShapedArrayView &)=default;
+//     ShapedArrayView(ShapedArrayView &&)=default;
+//     ShapedArrayView operator[](size_t idx) const;
+//     ShapedArrayView &operator=(const ShapedArrayView &)=default;
+//     ShapedArrayView &operator=(ShapedArrayView &&)=default;
+// };
 
 /**
  * @brief 张量类
@@ -43,6 +44,7 @@ public:
     using NumberPtr=UniquePointer<Number>; //用智能指针管理内存
     friend class ShapedRefArray;
     friend class ShapedArrayView;
+    friend class Slice;
 private:
     NumberPtr mArray; //内存条
     Shape shape; //用什么形状解读这一块内存
@@ -70,7 +72,7 @@ public://Memory
      * @param init_list 初始化列表
      * @param shape_ 初始化形状; 默认为空，会自动补充为一维
     */
-    ShapedArray(std::initializer_list<Number> init_list, const Shape &shape_=Shape());
+    explicit ShapedArray(std::initializer_list<Number> init_list, const Shape &shape_=Shape());
     /**
      * @brief 构造函数
      * @param init_vec 初始化列表
@@ -157,74 +159,13 @@ private:
     */
     void clear();
     /**
-     * @brief 获取元素，同numpy.ndarray.__getitem__(:tuple[int])
+     * @brief 获取元素的内部函数
      * @param index 下标(数字们)
-     * @return 一个RefTensor
+     * @param resBegin 把被取出的地址的引用值存放的位置的起点
+     * @return 存放终点，resBegin+resCnt
     */
-    ShapedRefArray at_(const std::vector<size_t> &index) const
-    {
-        // for(size_t i=0;i<index.size();++i)
-        //     std::cout<<index[i]<<",";
-        // std::cout<<'\n';
-
-        const auto argCount = index.size();
-        if(index.empty()||argCount>shape.dimNumber())
-            throw std::runtime_error("From ShapedArray::at(const vector &):\n\tWrong size of index");
-        Number *head=mArray;
-        Number *be=head;
-        auto [offset, resCnt] = shape.offsetOf(index);
-        be+=offset;
-        PtrVector<Number> res(resCnt);
-        for(size_t i=0;i<resCnt;++i)
-            res[i]=be+i;
-        ShapedRefArray rt(res);
-        rt.shape=shape.sliced(argCount);
-        return rt;
-    }
-    ShapedRefArray at_(const std::vector<ShapedArrayView> &index) const
-    {
-        //按理来讲这里index各个组成部分的shape都一样. 不进一步检查了; 而且保证tuple的每一项还是ShapedArray
-        const Shape &idxShape = index[0].shape;
-        size_t l = index.size();
+    Number **atByNumbers(const std::vector<size_t> &index, Number **resBegin) const;
         
-        bool nextCallIsNumIdx = idxShape.dimNumber()==1; //再递归时, idx是数
-        auto resDim0 = idxShape.dimSizeOf(0);
-        std::vector<ShapedRefArray> res;
-        //1. 再递归时是数
-        if(nextCallIsNumIdx)
-        {
-            std::vector<size_t> numIdx(l);
-            for(size_t i=0;i<resDim0;++i)
-            {
-                for(size_t j=0;j<l;++j)
-                    numIdx[j] = index[j].mBegin[i];
-                res.push_back(at_(numIdx));
-            }
-            return res;
-        }
-        //2. 再递归时还是View
-        std::vector<ShapedArrayView> indexEach;
-        indexEach.resize(l);
-        for(size_t i=0;i<resDim0;++i)
-        {
-            for(size_t j=0;j<l;++j)
-                indexEach[j] = index[j][i]; //把各个下标的[i]拼起来作为索引来计算res[i]
-            res.push_back(at_(indexEach));
-        }
-        return res;
-    }
-    // ShapedRefArray at_(const std::vector<ShapedArrayView> &index) const
-    // {
-    //     /*
-    //         Given index={X_i}(i \in [l]), srcShape, idxShape=broadcast((index.shape)...)
-    //         Then resShape = idxShape + srcShape[l:]
-    //         res = [
-    //             src.at({index[k][i] for k in range(l)})
-    //             for i in range(idxShape.bufSize())
-    //         ].reshape(resShape)
-    //         核心思路：开足够大内存、先计算resShape，写好通过数字索引的，然后把各个组合跑一遍拼起来，
-    //     */
-    // }
 public:
     /**
      * @brief 输出
@@ -253,7 +194,7 @@ public:
      * @param cond 筛选函数，参数是元素
      * @return 一个RefTensor，引用符合条件的元素
     */
-    ShapedRefArray at(std::function<bool(const Number &)> cond) const;
+    ShapedRefArray where(std::function<bool(const Number &)> cond) const;
     
     /**
      * @brief 获取某些元素，同numpy.ndarray.__getitem__(:tuple)
@@ -266,42 +207,55 @@ public:
     {
         //虽不会检查，但要求indices都是ShapedArray/数
         size_t l = sizeof...(indices);
-        // if(all({(!IsShapedArray<Args>::flag)...}))
-        // {
-        //     //所有都不是Array，判为都是size_t
-        //     return at_({(static_cast<size_t>(indices))...});
-        // }
+        size_t tmp=0;
         std::vector<ShapedArray> index {
-            (fromSequence(indices))...
+            genIndex(indices, shape.dimSizeOf(tmp++))...
         }; 
-        //计算广播后形状
+        //计算下标广播后形状、结果形状
         Shape idxShape(index[0].shape);
         for(size_t i=1;i<l;++i)
             idxShape = Shape::broadcast(idxShape, index[i].shape);
+        Shape resShape = idxShape + shape.sliced(l); 
+        size_t resBufSize = resShape.bufSize();
+        //想一想，为什么？（以下标的形状，拼好几块不知名物体。不知名物体的形状是shape.sliced(l)，因为不知名物体是arr[i1,i2,i3...,il]）
+        
+        Number **ptr = new Number*[resBufSize]; //Ref的内存条
+#if DEBUG
+        std::cout<<"ShapedRefArray Alloc @"<<static_cast<void*>(mArray)<<'['<<size<<']'<<std::endl;
+#endif
+        std::vector<size_t> numIdx (l); //一组数字下标组合的存放处
         //1.tuple的每一项是数
         if(idxShape.dimNumber()==0 && idxShape.bufSize()==1)
         {
-            std::vector<size_t> numIdx (l);
             for(size_t i=0;i<l;++i)
                 numIdx[i] = static_cast<size_t>(*index[i].mArray);
-            return at_(numIdx);
+            atByNumbers(numIdx, ptr); //存到ptr里
+            return ShapedRefArray(ptr, resShape);
         }
-        //2.tuple的每一项是ShapedArray，广播
-        for(auto &arr : index)
+        //2.tuple的每一项是ShapedArray
+        /*
+            这里起，由于已经知道了resBufSize，我们把index看成一维数组就好了。然后把每一组下标算出来，放道一块连续的Number**中，转为Ref
+            记index = {X_k} for k in range(l)
+            res = [
+                M.at({X_k[i] for k in range(l)})
+                for i in range(idxShape.bufSize())
+            ].reshape(resShape)
+        */
+        size_t idxCnt = idxShape.bufSize();
+        Number **currentBegin = ptr;
+        for(size_t i=0;i<idxCnt;++i)
         {
-            if(arr.shape==idxShape)
-                continue;
-            Number *p = arr.mArray;
-            p=broadcastShaped(p, arr.shape, idxShape, false).first;
-            arr.mArray = p; //在这一步时, UniquePointer::operator=(UP&&)函数会把原来的内存放掉
-            arr.shape = idxShape;
+            //取每种下标组合
+            for(size_t j=0, offset;j<l;++j){
+                auto &idx = index[j];
+                offset = Shape::offsetBeforeBroadcast(i, idxShape, idx.shape); //取出
+                numIdx[j] = idx.mArray[offset];
+            }
+            currentBegin = atByNumbers(numIdx, currentBegin);//存储, 并往后挪
         }
-        //转成View, 调用at_
-        std::vector<ShapedArrayView> indexView;
-        indexView.resize(l);
-        for(size_t i=0;i<l;++i)
-            indexView[i] = ShapedArrayView(index[i]);
-        return at_(indexView);
+        if(currentBegin-ptr != resBufSize)
+            throw std::runtime_error("@Author From ShapedArray::at(...)\n\t:Wrong saved size");
+        return ShapedRefArray(ptr, resShape);
     }
     /**
      * @brief 对每个值进行操作

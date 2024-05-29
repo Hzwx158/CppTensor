@@ -17,7 +17,11 @@ public:
 private:
     NumberPtr *mArray; //内存条，里面存的不是Number，而是别人的Number*
     Shape shape; //形状
+    //用在at(func)里
     ShapedRefArray(const PtrVector<Number> &init_list={});
+    //用在at(...)里
+    ShapedRefArray(Number **buf, const Shape &shape_);
+    //用在？？
     ShapedRefArray(const std::vector<ShapedRefArray> &refTensors);
 public:
     ~ShapedRefArray();
