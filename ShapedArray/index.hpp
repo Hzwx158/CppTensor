@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CPPTENSOR_SHAPEDARRAY_INDEX_H
+#define CPPTENSOR_SHAPEDARRAY_INDEX_H
 #include "./simplevector.hpp"
 namespace tryAI{
 class Slice{
@@ -11,16 +12,6 @@ public:
     std::vector<size_t> toIndices(size_t length);
 };
 
-template<class T>
-struct IsVectorSizeT
-{
-    static const bool flag=false;
-    IsVectorSizeT(const T &){}
-};
-template<>
-struct IsVectorSizeT<std::vector<size_t>>
-{
-    static const bool flag=true;
-    IsVectorSizeT(const std::vector<size_t> &){}
-};
+
 }
+#endif

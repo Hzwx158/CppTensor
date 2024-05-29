@@ -1,5 +1,7 @@
-#pragma once
-namespace tryAI{
+#ifndef CPPTENSOR_SHAPEDARRAY_POINTER_H
+#define CPPTENSOR_SHAPEDARRAY_POINTER_H
+namespace tryAI
+{
 
 #define DEBUG 0
 template<class T>
@@ -21,7 +23,8 @@ public:
     ~UniquePointer(){if(ptr) clear();}
     void clear(){
 #if DEBUG
-        std::cout<<"Pointer Free @"<<static_cast<void*>(ptr)<<std::endl;
+        if(ptr)
+            std::cout<<"Pointer Free @"<<static_cast<void*>(ptr)<<std::endl;
 #endif
         delete[] ptr;
         ptr=nullptr;    
@@ -51,4 +54,7 @@ public:
         ptr=ptr_;
     }
 };
+
+
 }
+#endif

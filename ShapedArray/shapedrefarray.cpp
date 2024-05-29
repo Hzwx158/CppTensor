@@ -107,7 +107,7 @@ std::ostream &operator<<(std::ostream &osm, const ShapedRefArray &obj){
             osm<<(*ele);
         }
     );
-    return osm<<"\nshape: "<<obj.shape;
+    return osm; //<<"\nshape: "<<obj.shape;
 }
 
 }

@@ -1,6 +1,5 @@
-#pragma once
-#ifndef CPPTENSOR_TENSOR_BASE
-#define CPPTENSOR_TENSOR_BASE
+#ifndef CPPTENSOR_SHAPEDARRAY_BASE_H
+#define CPPTENSOR_SHAPEDARRAY_BASE_H
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -94,6 +93,36 @@ bool isZeros(const T &obj){
     else if(size<=4)
         return ! ((*(int32_t*)(&obj)) & static_cast<int32_t>(-1));
     return ! ((*(int64_t*)(&obj)) & static_cast<int64_t>(-1));
+}
+
+template<class T>
+struct IsVector
+{
+    static constexpr bool flag=false;
+    IsVector(const T &){}
+};
+template<class T>
+struct IsVector<std::vector<T>>
+{
+    static constexpr bool flag=true;
+    IsVector(const std::vector<T> &){}
+};
+template<class T>
+bool isVector(const T &){return IsVector<T>::flag;}
+
+inline bool any(std::initializer_list<bool> list)
+{
+    for(auto &val : list)
+        if(val)
+            return true;
+    return false;
+}
+inline bool all(std::initializer_list<bool> list)
+{
+    for(auto &val : list)
+        if(!val)
+            return false;
+    return true;
 }
 
 }

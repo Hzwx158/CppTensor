@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CPPTENSOR_SHAPEDARRAY_SHAPE_H
+#define CPPTENSOR_SHAPEDARRAY_SHAPE_H
 #include "./simplevector.hpp"
 #include "./pointer.hpp"
 #include <functional>
@@ -134,7 +135,6 @@ public:
     H_OUTPUTABLE(Shape)
 };
 
-#define list std::vector
 
 /**
  * @brief 输出有形状的数组的函数
@@ -192,18 +192,19 @@ void printShaped(
  * @param src 数据源
  * @param srcShape 数据源的形状
  * @param anoShape 目标形状(可和srcShape广播的)
+ * @param needBroadcast 是否需要计算anoShape和srcShape的广播结果. 默认为true
  * @return 一个pair, first是结果内存位置(一定是新分配的), second是结果形状
  * @attention 结果的内存条一定是新分配的, 记得delete
 */
 template<class Number>
-std::pair<Number *, Shape> broadcastShaped(const Number *src, const Shape &srcShape, const Shape &anoShape)
+std::pair<Number *, Shape> broadcastShaped(const Number *src, const Shape &srcShape, const Shape &anoShape, bool needBroadcast=true)
 {
     //1.需要形状非空
     if(srcShape.isEmpty()) 
         throw std::runtime_error("From broadcastShaped:\n\t<srcShape> is empty!");
     if(anoShape.isEmpty())
         throw std::runtime_error("From broadcastShaped:\n\t<anoShape> is empty!");
-    Shape resShape = Shape::broadcast(srcShape, anoShape);
+    const Shape &resShape = (needBroadcast?Shape::broadcast(srcShape, anoShape):anoShape);
     const auto srcBufSize=srcShape.bufSize();
     const auto srcDimNumber=srcShape.dimNumber();
     const auto resBufSize=resShape.bufSize();
@@ -253,3 +254,4 @@ std::pair<Number *, Shape> broadcastShaped(const Number *src, const Shape &srcSh
 }
 
 }
+#endif

@@ -33,11 +33,9 @@ Shape Shape::sliced(size_t be, size_t en) const{
     return res;
 }
 Shape Shape::sliced(size_t be) const{
-    bool legal;
     const auto size=shape.size();
-    if(be==size) return Shape({});;
-    legal=toBoundedIdx(be,size,&be);
-    if(!legal)
+    if(be==size) return Shape({});
+    if(!toBoundedIdx(be,size,&be))
         throw std::out_of_range("From Shape::sliced(size_t):\n\tOut of range");
     return Shape(
         Vector(shape.data()+be, size-be), 

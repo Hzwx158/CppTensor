@@ -15,10 +15,7 @@ using tryAI::constant;
 using namespace std::chrono;
 std::ofstream ofs("./time.txt");
 
-void test(const std::vector<ShapedArray> &tensors){
-    for(auto &mem:tensors)
-        mem.print();
-}
+
 
 int main()
 {
@@ -45,18 +42,23 @@ int main()
     // delete x;
     // delete y;
     
-    cout<<Shape();
-    // t.print();
+    auto t = tryAI::arange(1, 13, 1, {2,2,3});
+    cout<<t<<endl;
+    auto p = t.at(
+        slist(slist(1),slist(0)),
+        1, 
+        slist(2,1)
+    );
+    cout<<p<<endl;
 #else
-
+    func({1,2,3,4});
 #endif
 }
     return 0;
 }
 /*
-TODO : Slice怎么搞, at下标需要改成可broadcast成一致的即可; 是否需要Index类？
+TODO : Slice怎么搞, at下标需要改成可broadcast成一致的即可
 
-以ShapedArray作为Index的类型：构造函数可以写成ShapedArray t{1,2,3}, 所以可以直接传参{1,2,3}
-
+TODO : 把ShapedArray拼接的构造函数改为ShapedArray::stack；写一个vector of vector of vector... => ShapedArray的构造函数（必要的话）
 TODO : 在tensor mul 常量怎么表示？Variable怎么设置？
 */

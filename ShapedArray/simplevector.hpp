@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CPPTENSOR_SHAPEDARRAY_SIMPLEVECTOR_H
+#define CPPTENSOR_SHAPEDARRAY_SIMPLEVECTOR_H
 #include "./base.h"
 #include <cstring>
 namespace tryAI{
@@ -198,5 +199,6 @@ class PtrVector{
     }
 };
 }
-#endif
 #undef INIT_LIST_CONSTRUCTOR
+#endif
+#endif
