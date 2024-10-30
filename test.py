@@ -1,9 +1,16 @@
 import numpy as np
-import torch
 import timeit
 
-timer=timeit.default_timer()
-for i in range(0,10000):
-    pass
+a = np.arange(12).reshape((2,2,3))+1
+start_time = timeit.default_timer()
 
-print(str((timeit.default_timer()-timer)*1000)+'ms')
+a[1, :, 0:-1] = [100,99]
+# print(a)
+
+end_time = timeit.default_timer()
+print(f'-------\nusing time: {(end_time-start_time)*1000}ms')
+
+# def func(v):
+#     print(f'v:{v}\nshape:{np.shape(v)}')
+
+# func(a[[[1],[0]],:,:])

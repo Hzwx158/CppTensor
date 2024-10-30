@@ -1,5 +1,6 @@
 #include "shape.hpp"
-namespace tryAI{
+namespace numcpp{
+
 Shape::Shape(std::initializer_list<size_t> shape_)
 :shape(shape_.begin(),shape_.size()),product(shape_.size()+1)
 {
@@ -13,43 +14,42 @@ void Shape::generateProduct(){
         product[i-1]=shape[i-1]*product[i];
 }
 size_t Shape::stepSizeOf(size_t dim) const {
-    if(!toBoundedIdx(dim, shape.size(), &dim)) //这里必须检查是[0, shapeSize)之间的，然后再+1
-        throw std::out_of_range("From Shape::stepSizeOf(size_t):\n\tOut of range");
+    if(!toBoundedIndex(dim, shape.size(), &dim)) //这里必须检查是[0, shapeSize)之间的，然后再+1
+        throw Error::outOfRange(__FILE__, __func__, dim, 0, shape.size());
     return product[dim+1];
 }
 Shape Shape::sliced(size_t be, size_t en) const{
-    bool legal1,legal2;
     const auto size=shape.size();
-    legal1=toBoundedIdx(be,size,&be);
-    legal2=toBoundedIdx(en-1,size,&en);
-    if(!(legal1&&legal2))
-        throw std::out_of_range("From Shape::sliced(size_t,size_t):\n\tOut of range");
+    if(!toBoundedIndex(be,size,&be))
+        throw Error::outOfRange(__FILE__,__func__, be, 0, size);
+    if(!toBoundedIndex(en-1,size,&en));
+        throw Error::outOfRange(__FILE__,__func__, en, 1, size+1);
     if(be==en) return Shape({});
     if(be>en)
-        throw std::runtime_error("From Shape::sliced(size_t,size_t):\n\tWrong begin end");
+        throw Error::wrong(__FILE__, __func__, "Wrong begin end");
     Shape res;
-    res.shape=Vector(shape.data()+be, en-be);
+    res.shape=SizeTArray(shape.data()+be, en-be);
     res.generateProduct();
     return res;
 }
 Shape Shape::sliced(size_t be) const{
     const auto size=shape.size();
     if(be==size) return Shape({});
-    if(!toBoundedIdx(be,size,&be))
-        throw std::out_of_range("From Shape::sliced(size_t):\n\tOut of range");
+    if(!toBoundedIndex(be,size,&be))
+        throw Error::outOfRange(__FILE__,__func__,be, 0, size);
     return Shape(
-        Vector(shape.data()+be, size-be), 
-        Vector(product.data()+be, size-be+1)
+        SizeTArray(shape.data()+be, size-be), 
+        SizeTArray(product.data()+be, size-be+1)
     );
 }
 
-std::pair<size_t,size_t> Shape::offsetOf(const std::vector<size_t> &index) const{
+std::pair<size_t,size_t> Shape::offsetOf(const SizeTArray &index) const{
     const auto argCount=index.size();
     size_t be=0;
     for(size_t i=0,dimSize,idx; i<argCount; ++i){
         dimSize = dimSizeOf(i);
-        if(!toBoundedIdx(index[i],dimSize,&idx))
-            throw std::out_of_range("From Shape::offsetOf(vector):\n\tOut of range");
+        if(!toBoundedIndex(index[i],dimSize,&idx))
+            throw Error::outOfRange(__FILE__,__func__,index[i], 0, dimSize);
         be+=idx*stepSizeOf(i);
     }
     auto resCnt=stepSizeOf(argCount-1);
@@ -58,12 +58,12 @@ std::pair<size_t,size_t> Shape::offsetOf(const std::vector<size_t> &index) const
 
 void Shape::squeeze(size_t dim){
     const auto oldDimNumber = dimNumber();
-    if(!toBoundedIdx(dim, oldDimNumber, &dim))
-        throw std::out_of_range("From Tensor::squeeze(size_t):\n\tout of range");
+    if(!toBoundedIndex(dim, oldDimNumber, &dim))
+        throw Error::outOfRange(__FILE__,__func__, dim, 0, oldDimNumber);
     if(dimSizeOf(dim)!=1)
-        throw std::runtime_error("From Tensor::squeeze(size_t):\n\tdimSizeOf(dim) is not 1");
+        throw Error::wrong(__FILE__,__func__,"dimSizeOf(dim) is not 1");
     const auto oldShapeBegin = shape.data();
-    Vector newShapeVec(oldDimNumber-1); //仅去掉一个维
+    SizeTArray newShapeVec(oldDimNumber-1); //仅去掉一个维
     const auto newShapeBegin  = newShapeVec.data();
     if(dim)
         memcpy(newShapeBegin, oldShapeBegin, dim*sizeof(size_t));
@@ -72,7 +72,7 @@ void Shape::squeeze(size_t dim){
     shape = std::move(newShapeVec);
     //对product类似操作
     const auto oldProductBegin = product.data();
-    Vector newShapeProduct(oldDimNumber);
+    SizeTArray newShapeProduct(oldDimNumber);
     const auto newProductBegin = newShapeProduct.data();
     memcpy(newProductBegin, oldProductBegin, (dim+1)*sizeof(size_t));
     if(oldDimNumber-dim-1)
@@ -90,8 +90,8 @@ void Shape::squeeze(){ //TODO: 可以对比一下，是开俩数组memcpy导一�
     }
     if(!cnt1) //没有1
         return; 
-    Vector newShape(oldDimNumber-cnt1);
-    Vector newProduct(oldDimNumber-cnt1+1);
+    SizeTArray newShape(oldDimNumber-cnt1);
+    SizeTArray newProduct(oldDimNumber-cnt1+1);
     newProduct[0]=product[0];
     size_t idx=0;
     for(size_t i=0; i<oldDimNumber; ++i){
@@ -115,18 +115,18 @@ bool Shape::operator==(const Shape &shape_) const{
 Shape Shape::operator+(const Shape &shape_) const {
     const size_t s1 = shape.size();
     const size_t s2 = shape_.shape.size();
-    Shape res{Vector(s1+s2), Vector(s1+s2+1)};
-    memcpy(res.shape.data(), shape.data(), s1*Vector::sizeOfT);
-    memcpy(res.shape.data()+s1, shape_.shape.data(), s2*Vector::sizeOfT);
-    memcpy(res.product.data(), product.data(), s1*Vector::sizeOfT);
-    memcpy(res.product.data()+s1, shape_.product.data(), (s2+1)*Vector::sizeOfT);
+    Shape res{SizeTArray(s1+s2), SizeTArray(s1+s2+1)};
+    memcpy(res.shape.data(), shape.data(), s1*SizeTArray::sizeOfT);
+    memcpy(res.shape.data()+s1, shape_.shape.data(), s2*SizeTArray::sizeOfT);
+    memcpy(res.product.data(), product.data(), s1*SizeTArray::sizeOfT);
+    memcpy(res.product.data()+s1, shape_.product.data(), (s2+1)*SizeTArray::sizeOfT);
     const size_t s2len=shape_.bufSize();
     for(size_t i=0;i<s1;++i)
         res.product[i]*=s2len;
     return res;
 }
 std::ostream &operator<<(std::ostream &osm, const Shape &obj){
-    if(obj.isEmpty())
+    if(obj.empty())
         return osm<<"(empty)";
     osm<<'(';
     auto s=obj.shape.size();
@@ -157,14 +157,14 @@ Shape Shape::broadcast(const Shape &shape1, const Shape &shape2){
                 l=s;
             }
             else if(s!=1)//既不相等也没1
-                throw std::runtime_error("From Shape::broadcast:\n\tThese two shape can't be broadcast");
+                throw Error::wrong(__FILE__,__func__,"These two shape can't be broadcast");
         }
     }
     if(!changed) 
         return longer;
     //计算product并拷贝
     const auto resSize=longer.dimNumber();
-    Vector productVec(resSize+1);
+    SizeTArray productVec(resSize+1);
     productVec[resSize]=1;
     for(size_t i=resSize;i>0;--i)
         productVec[i-1]=productVec[i]*longerVec[i-1];
@@ -174,7 +174,7 @@ Shape Shape::broadcast(const Shape &shape1, const Shape &shape2){
 Shape Shape::broadcast(const std::vector<Shape> &shapes)
 {
     if(shapes.empty())
-        throw std::runtime_error("From Shape::broadcast:\n\t<shapes> is empty");
+        throw Error::wrong(__FILE__,__func__,"<shapes> is empty");
     Shape res = shapes[0];
     size_t l = shapes.size();
     for(size_t i=1;i<l;++i)
@@ -187,7 +187,7 @@ size_t Shape::offsetBeforeBroadcast(size_t broOffset, const Shape &broShape, con
     size_t broDimNumber = broShape.dimNumber();
     size_t srcDimNumber = srcShape.dimNumber();
     if(broDimNumber < srcDimNumber)
-        throw std::runtime_error("From Shape::offsetMapByIndex:\n\tlen(<broShape>)<len(<srcShape>)");
+        throw Error::wrong(__FILE__,__func__,"len(<broShape>)="+Error::ullToStr(broDimNumber)+"<len(<srcShape>)="+Error::ullToStr(srcDimNumber));
     //1. 首先, 要把offset转为index
     //与srcShape无关的部分可以直接不要
     size_t dimDelta = broDimNumber - srcDimNumber;
@@ -199,7 +199,7 @@ size_t Shape::offsetBeforeBroadcast(size_t broOffset, const Shape &broShape, con
     {
         broIdx = broOffset/broShape.stepSizeOf(i+dimDelta);
         if(broIdx >= broShape.dimSizeOf(i+dimDelta))
-            throw std::out_of_range("@Author From Shape::offsetMapByIndex:\n\t<broIdx> out of range");
+            throw Error::author(__FILE__,__func__,"<broIdx> out of range");
         srcIdx = (srcShape.dimSizeOf(i)==1?0:broIdx);
         srcOffset += srcIdx * srcShape.stepSizeOf(i);
         broOffset %= broShape.stepSizeOf(i+dimDelta);
