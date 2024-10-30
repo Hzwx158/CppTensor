@@ -13,7 +13,7 @@ public:
     /**
      * @brief 构造函数
      * @param ptr_ 被保管的指针
-     * @attention ptr_必须是被new出来的
+     * @attention ptr_必须是被new出来的, 否则会被delete两遍
     */
     UniquePointer(T *ptr_):ptr(ptr_){}
     UniquePointer(const UniquePointer &)=delete;
@@ -44,14 +44,6 @@ public:
         if(ptr)
             clear();
         return *this;
-    }
-    /**
-     * @brief 重设内容
-     * @param ptr_ 管理的指针
-     * @attention 原来管理的ptr不会被自动释放掉，会造成泄露！
-    */
-    void reset(T *ptr_){
-        ptr=ptr_;
     }
 };
 

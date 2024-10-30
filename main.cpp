@@ -56,11 +56,7 @@ int main()
     ShapedArray t{1,2,3,4,5,6,7,8,9,10,11,12};
     t.reshape({2,2,3});
     cout<<t<<endl;
-    auto p = t.at(
-        slist(slist(1),slist(0)),
-        1,
-        Slice(1,3)
-    );
+    auto p = t.at(Slice(1,2)); //t[1:2]
     std::cout<<p<<endl;
 
 #else

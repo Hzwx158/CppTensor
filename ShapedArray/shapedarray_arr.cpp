@@ -105,11 +105,12 @@ void ShapedArray::clear(){
 ShapedArray &ShapedArray::operator=(const ShapedArray &obj){
     if(this==&obj) 
         return *this;
-    clear();
-    if(obj.shape.isEmpty())
+    if(obj.shape.isEmpty()){
+        clear();
         return *this;
-    shape=obj.shape;
-    mArray.reset(new Number[shape.bufSize()]);
+    }
+    shape = obj.shape;
+    mArray = new Number[shape.bufSize()];
 #if DEBUG
     std::cout<<"Pointer Alloc @"<<static_cast<void*>(mArray)<<std::endl;
 #endif
