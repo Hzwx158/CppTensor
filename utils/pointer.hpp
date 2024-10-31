@@ -5,7 +5,6 @@ namespace numcpp
 {
 DEF_TYPE_JUDGE(void);
 
-#define DEBUG 0
 /**
  * @brief 智能指针（自己实现版）
  * @tparam T 指针指向类型

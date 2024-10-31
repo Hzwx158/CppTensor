@@ -37,4 +37,7 @@ Error::RE Error::author(SCR file, SCR func, SCR context){
 Error::RE Error::unfinished(SCR file, SCR func){
     return RE(_from(file, func)+"Unfinished");
 }
+Error::RE Error::divByZero(SCR file, SCR func){
+    return RE(_from(file, func)+"Div by #0!");
+}
 }

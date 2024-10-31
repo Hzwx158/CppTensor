@@ -66,7 +66,7 @@ public:
     */
     size_t dimSizeOf(size_t dim) const {return shape[dim];}
     /**
-     * @brief 返回在第dim个维度的步长
+     * @brief 返回在第dim个维度的步长(第dim个维度的每一个子数组含有多少元素)
      * @param dim 维度数
      * @return 在第dim个维度的步长
     */
@@ -142,7 +142,22 @@ public:
     H_OUTPUTABLE(Shape);
 };
 
-
+template<class T>
+void _output_number(std::ostream &osm, const T &obj){
+    if constexpr(std::is_same_v<bool, T>){
+        osm << (obj?"true":"false");
+    }
+    else{
+        if constexpr((!std::is_unsigned_v<T>)||std::is_same_v<T, double>||std::is_same_v<T, float>)
+            if(obj == ninf_v<T>){
+                osm << "-inf";
+                return;
+            }
+        if(obj == inf_v<T>)
+            osm << "inf";
+        else osm << obj;  
+    }  
+}
 /**
  * @brief 输出有形状的数组的函数
  * @param arr 输出内存的首地址
@@ -155,8 +170,7 @@ template<class T>
 void printShaped(
     const T *arr, const Shape &shape, 
     std::ostream &osm=std::cout,
-    const std::function<void(std::ostream&,const T &)> &output
-    =[](std::ostream &osm, const T &ele){osm<<ele;}
+    const std::function<void(std::ostream&,const T &)> &output = _output_number<T>
 ) {
     if(shape.empty()){
         //空数组

@@ -3,24 +3,12 @@
 #include "./array.hpp"
 namespace numcpp{
 
-template<class T>
-struct Is_ShapedArray{
-    constexpr static bool value = false;
-};
-template<class T>
-struct Is_ShapedArray<ShapedArray<T>>{
-    constexpr static bool value = true;
-};
-
-template<class T>
-constexpr bool is_ShapedArray_v = Is_ShapedArray<T>::value;
-
 template<class Number>
 static inline ShapedArray<long long> to_shaped(Number n){
     return ShapedArray<long long>(static_cast<long long>(n));
 }
 static inline ShapedArray<Slice> to_shaped(const Slice &slc){
-    return ShapedArray<Slice>(slc, Shape({}));
+    return ShapedArray<Slice>(slc);
 }
 template<class DType>
 static inline const ShapedArray<DType> &to_shaped(const ShapedArray<DType> &obj){
@@ -151,18 +139,48 @@ template<class ...Args>
 ShapedArray<DType*> ShapedArray<DType>::at(const Args &... indices)
 {
     auto [index_array, res_shape] = getUllIndices(this->shape, indices...);
-    ShapedArray<DType*> res(nullptr, res_shape);
+    ShapedArray<DType*> res = numcpp::fill<DType*>(nullptr, res_shape);
     DType **dst = res.data();
     size_t cnt=0;
     for(Shape::SizeTArray &idx:index_array){
         auto [offset, eleCnt] = shape.offsetOf(idx);
-        //todo
         for(size_t i=0; i<eleCnt; ++i)
             dst[i+cnt] = mArray + offset + i;
         cnt+=eleCnt;
     }
     return res;
 }
+template<class DType>
+template<class ...Args>
+ShapedArray<DType> ShapedArray<DType>::at(const Args &... indices) const
+{
+    auto [index_array, res_shape] = getUllIndices(this->shape, indices...);
+    ShapedArray<DType> res = numcpp::fill<DType>(DType(), res_shape);
+    DType *dst = res.data();
+    for(Shape::SizeTArray &idx:index_array){
+        auto [offset, eleCnt] = shape.offsetOf(idx);
+        memcpy(dst, mArray+offset, eleCnt*sizeof(DType));
+        dst+=eleCnt;
+    }
+    return res;
+}
+
+
+template<class DType>
+template<class Functor>
+void ShapedArray<DType>::apply_on(Functor &&func, const FixedArray<size_t> &index){
+    size_t bufSize = shape.bufSize();
+    if(index.size()==0)
+        for(size_t i=0;i<bufSize;++i)
+            func(mArray[i]);
+    else{
+        auto [offset, ele_cnt] = shape.offsetOf(index);
+        for(size_t i=0;i<ele_cnt;++i)
+            func(mArray[offset+i]);
+    }
+}
+
+
 
 #define IDX(...) ShapedArray{ __VA_ARGS__ }
 

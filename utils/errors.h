@@ -52,6 +52,12 @@ struct Error{
      * @param func 报错函数名
      */
     static RE unfinished(SCR file, SCR func);
+    /**
+     * @brief 除0错误
+     * @param file 报错文件
+     * @param func 报错函数名
+     */
+    static RE divByZero(SCR file, SCR func);
 private:
     /**
      * @brief 格式化来源字符串

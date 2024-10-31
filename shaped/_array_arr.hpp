@@ -3,8 +3,8 @@
 #include "./array.hpp"
 namespace numcpp{
 //--------------------------------内存---------------------------
-
-METHOD()::ShapedArray(std::initializer_list<DType> init_list, const Shape &shape_)
+template<class DType>
+ShapedArray<DType>::ShapedArray(std::initializer_list<DType> init_list, const Shape &shape_)
 :mArray(init_list.size()? new DType[init_list.size()]:nullptr)
 ,shape(shape_.empty()?Shape({init_list.size()}):shape_)
 {
@@ -17,7 +17,8 @@ METHOD()::ShapedArray(std::initializer_list<DType> init_list, const Shape &shape
         memcpy(mArray, init_list.begin(), init_list.size()*sizeof(DType));
 }
 
-METHOD()::ShapedArray(const std::vector<DType> &init_vec, const Shape &shape_)
+template<class DType>
+ShapedArray<DType>::ShapedArray(const std::vector<DType> &init_vec, const Shape &shape_)
 :mArray(init_vec.size()? new DType[init_vec.size()]:nullptr)
 ,shape(shape_.empty()?Shape({init_vec.size()}):shape_)
 {
@@ -30,20 +31,17 @@ METHOD()::ShapedArray(const std::vector<DType> &init_vec, const Shape &shape_)
         memcpy(mArray, init_vec.data(), init_vec.size()*sizeof(DType));
 }
 
-METHOD()::ShapedArray(const DType &num, const Shape &shape_)
-:mArray(shape_.empty()? nullptr : new DType[shape_.bufSize()])
-,shape(shape_){
-    if(shape.empty())
-        throw Error::wrong(__FILE__, __func__, "Empty shape!");
+template<class DType>
+ShapedArray<DType>::ShapedArray(const DType &num)
+:mArray(new DType(num))
+,shape({}){
 #if DEBUG
     std::cout<<"Pointer Alloc @"<<static_cast<void*>(mArray)<<'['<<shape.bufSize()<<']'<<std::endl;
 #endif
-    const auto size=shape.bufSize();
-    for(size_t i=0;i<size;++i)
-        mArray[i]=num;
 }
 
-METHOD()::ShapedArray(const std::vector<ShapedArray> &tensors, const Shape &shape_)
+template<class DType>
+ShapedArray<DType>::ShapedArray(const std::vector<ShapedArray> &tensors, const Shape &shape_)
 {
     if((!shape_.empty())&&tensors.size()!=shape_.bufSize())
         throw Error::wrong(__FILE__, __func__, "Wrong shape");
@@ -64,7 +62,8 @@ METHOD()::ShapedArray(const std::vector<ShapedArray> &tensors, const Shape &shap
     }
 }
 
-METHOD()::ShapedArray(const ShapedArray &obj)
+template<class DType>
+ShapedArray<DType>::ShapedArray(const ShapedArray &obj)
     :mArray(new DType[obj.shape.bufSize()])
     ,shape(obj.shape)
 {
@@ -77,19 +76,22 @@ METHOD()::ShapedArray(const ShapedArray &obj)
     memcpy(mArray, obj.mArray, sizeof(DType)*size);
 }
 
-METHOD()::ShapedArray(ShapedArray &&obj)
+template<class DType>
+ShapedArray<DType>::ShapedArray(ShapedArray &&obj)
     :mArray(std::move(obj.mArray))
     ,shape(std::move(obj.shape))
 {
     //obj.clear();
 }
 
-METHOD(void)::clear(){
+template<class DType>
+void ShapedArray<DType>::clear(){
     mArray.clear();
     shape.clear();
 }
 
-METHOD(ShapedArray<DType> &)::operator=(
+template<class DType>
+ShapedArray<DType> &ShapedArray<DType>::operator=(
     std::conditional_t<
         std::is_pointer_v<DType>, 
         ShapedArray<std::remove_pointer_t<DType>>,
@@ -124,7 +126,8 @@ METHOD(ShapedArray<DType> &)::operator=(
     }
 }
 
-METHOD(ShapedArray<DType> &)::operator=(
+template<class DType>
+ShapedArray<DType> &ShapedArray<DType>::operator=(
     std::conditional_t<
         std::is_pointer_v<DType>, 
         ShapedArray<std::remove_pointer_t<DType>>,
@@ -152,26 +155,81 @@ METHOD(ShapedArray<DType> &)::operator=(
         return *this;
     }
 }
+//-------------------------其他初始化-----------------------
 
+/**
+ * @brief 填充
+ * @param num 填充值
+ * @param shape 填充的shape
+ */
+template<class T>
+ShapedArray<T> fill(const T &num, const Shape &shape){
+    size_t l=shape.bufSize();
+    T *ptr=new T[l];
+#if DEBUG
+    std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<shape.bufSize()<<']'<<std::endl;
+#endif
+    if((!num)||(num==(T)(-1)))
+        memset(ptr, (size_t)num, sizeof(T)*l);
+    else for(size_t i=0;i<l;++i)
+        ptr[i] = num;
+    return ShapedArray<T>(std::move(ptr), shape);
+}
+
+template<class T>
+ShapedArray<T> arange(const T &be, const T &en, const T &step = 1, const Shape &shape=Shape()){
+    if(step==0)
+        throw Error::wrong(__FILE__, __func__, "<step> shouldn't be 0!");
+    if((en-be)*step<0)
+        throw Error::wrong(
+            __FILE__, __func__, 
+            "arange("+Error::llToStr(be)+","+Error::llToStr(en)
+            +","+Error::llToStr(step)+") is illegal"
+        );
+    size_t len = numcpp::ceil(en-be, step);
+    if((!shape.empty())&&shape.bufSize()!=len)
+        throw Error::wrong(__FILE__,__func__, "Wrong shape size");
+    T *ptr = new T[len];
+#if DEBUG
+    std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<shape.bufSize()<<']'<<std::endl;
+#endif
+    for(size_t i=0;i<len;++i)
+        ptr[i] = be+i*step;
+    if(shape.empty())
+        return ShapedArray<T>(std::move(ptr), Shape({len}));
+    else return ShapedArray<T>(std::move(ptr), shape);
+}
 //-------------------------功能-----------------------------
 
-METHOD(void)::to(const Shape &shape_){
+template<class DType>
+void ShapedArray<DType>::to(const Shape &shape_){
     if(shape.bufSize()!=shape_.bufSize())
         throw Error::wrong(__FILE__, __func__, "Wrong Size");
     shape=shape_;
 }
-METHOD(ShapedArray<DType>)::reshape(const Shape &shape_){
+
+template<class DType>
+template<class T>
+ShapedArray<T> ShapedArray<DType>::to() const{
+    T *ptr = new T[shape.bufSize()];
+#if DEBUG
+    std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<shape.bufSize()<<']'<<std::endl;
+#endif
+    size_t l = shape.bufSize();
+    for(size_t i=0;i<l;++i){
+        ptr[i] = T(mArray[i]); 
+    }
+    return ShapedArray<T>(std::move(ptr), shape);
+}
+
+template<class DType>
+ShapedArray<DType> ShapedArray<DType>::reshape(const Shape &shape_){
     ShapedArray<DType> res = *this;
     res.to(shape_);
     return res;
 }
 
-METHOD(void)::foreach(std::function<void(DType&)> func){
-    const auto size=shape.bufSize();
-    DType *head=mArray;
-    for(size_t i=0;i<size;++i)
-        func(head[i]);
-}
+
 // ShapedRefArray ShapedArray::where(std::function<bool(const DType &)> cond) const{
 //     const auto size=shape.bufSize();
 //     DType *head=mArray;

@@ -184,15 +184,17 @@ Shape Shape::broadcast(const std::vector<Shape> &shapes)
 
 size_t Shape::offsetBeforeBroadcast(size_t broOffset, const Shape &broShape, const Shape &srcShape)
 {
+    // offset = (idx) cdot (shape.stepSizes)  
     size_t broDimNumber = broShape.dimNumber();
     size_t srcDimNumber = srcShape.dimNumber();
     if(broDimNumber < srcDimNumber)
         throw Error::wrong(__FILE__,__func__,"len(<broShape>)="+Error::ullToStr(broDimNumber)+"<len(<srcShape>)="+Error::ullToStr(srcDimNumber));
-    //1. 首先, 要把offset转为index
     //与srcShape无关的部分可以直接不要
     size_t dimDelta = broDimNumber - srcDimNumber;
-    for(size_t i=0;i<dimDelta;++i)
-        broOffset%=broShape.stepSizeOf(i);
+    // for(size_t i=0;i<dimDelta;++i)
+    //     broOffset%=broShape.stepSizeOf(i);
+    if(dimDelta)
+        broOffset %= broShape.stepSizeOf(dimDelta-1);
     //破译出每维坐标, 并直接计算偏移值
     size_t srcOffset=0;
     for(size_t i=0, srcIdx, broIdx;i<srcDimNumber;++i)

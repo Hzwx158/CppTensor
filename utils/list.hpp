@@ -205,7 +205,7 @@ struct Slice{
      * @brief 构造函数
      * @param end 结束(不含), 默认是无穷
      */
-    constexpr explicit Slice(ll end=constant::INT_INF):start_{0}, end_{end}, step_{1}{}
+    constexpr explicit Slice(ll end=constant::int64_inf):start_{0}, end_{end}, step_{1}{}
     /**
      * @brief 构造函数
      * @param start 起始(含)
@@ -223,7 +223,7 @@ struct Slice{
      * @return Slice对象
      */
     static Slice from(ll start, ll step=1){
-        return Slice(start, constant::INT_INF, step);
+        return Slice(start, constant::int64_inf, step);
     }
     /**
      * @brief 直到某下标结束，同Slice(ll end, ll step=1)
@@ -242,6 +242,18 @@ struct Slice{
     FixedArray<size_t> getIndices(size_t len) const;
     H_OUTPUTABLE(Slice);
 };
-
+/**
+ * @brief 计算ceil(a/b)
+ * @param a 分子
+ * @param b 分母
+ * @return ceil(a/b)
+ */
+inline long long ceil(long long a, long long b){
+    if(!b) throw Error::divByZero(__FILE__, __func__);
+    double f = a/(b+0.0);
+    long long d = a/b;
+    bool isInt = (f-d)<=constant::eps;
+    return isInt? d:d+1;
+}
 }
 #endif
