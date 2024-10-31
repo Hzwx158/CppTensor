@@ -173,10 +173,11 @@ public:
     // ShapedRefArray where(std::function<bool(const DType &)> cond) const;
     
     /**
-     * @brief 获取某些元素，同numpy.ndarray.__getitem__(:tuple)
+     * @brief 获取某些元素，同numpy.ndarray.__getitem__
      * @param indices 下标
      * @return 一个RefTensor
-     * @todo 下标应该弄成可以broadcast成一致的就OK，并且没写sliced下标
+     * @example python: a[[1,2], 3, 3:4]
+     * c++: a.at(IDX{1,2}, 3, Slice(3,4))
      */
     template<class ...Args>
     ShapedArray<DType*> at(const Args &... indices);
