@@ -46,28 +46,27 @@ constexpr bool is_##className##_v = Is_##className<T>::flag;
 template<class T, class ReleaseFunc>
 class Releaser{
 private:
-    const ReleaseFunc &release;
+    ReleaseFunc release;
     T &obj;
 public:
-    Releaser(T &obj_, const ReleaseFunc &releaseFunc):
-    obj(obj_), release(releaseFunc){}
+    Releaser(T &obj_, ReleaseFunc &&releaseFunc):
+    obj(obj_), release((ReleaseFunc&&)(releaseFunc)){}
     ~Releaser(){release(obj);}
 };
-template<class T, class R>
-class Releaser<T, R(T::*)()>{
-public:
-    using TMemFunc=R(T::*)();
-private:
-    TMemFunc release;
-    T &obj;
-public:
-    Releaser(T &obj_, TMemFunc releaseFunc):
-    obj(obj_), release(releaseFunc){}
-    ~Releaser(){
-        if(release)
-            (obj.*release)();
-    }
-};
+/**
+ * @brief 上下文管理
+ * @param obj 被管理对象
+ * @param func 执行代码, 接受obj作为参数
+ * @param del 回收obj的函数, 接受obj作为参数
+ * @return func的返回值
+ */
+template<class T, class Functor,class ReleaseFunc>
+auto with(T &&obj, Functor &&func, ReleaseFunc &&del){
+    Releaser releaser(obj, (ReleaseFunc&&)(del));
+    return func(obj);
+}
+
+
 /**
  * @brief 从低位到高位输出二进制内容
  * @param d 浮点数

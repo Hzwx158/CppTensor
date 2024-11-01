@@ -248,7 +248,11 @@ public:
     ShapedArray<int> compare(const ShapedArray<T> &obj) const;
     template<class T>
     ShapedArray<int> compare(const T &obj) const;
-
+    /**
+     * @brief 矩阵乘法
+     * @param obj 另一个矩阵
+     * @return 结果
+     */
     template<class T>
     ShapedArray<op_ret_t<EOperation::MUL, DType, T>> matmul(const ShapedArray<T> &obj) const;
 

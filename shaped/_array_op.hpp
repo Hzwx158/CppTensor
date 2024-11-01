@@ -2,6 +2,7 @@
 #define NUMCPP_SHAPED_PRIVATE_ARRAY_OP
 #include "./array.hpp"
 #include <cmath>
+#include "../utils/matmul.hpp"
 namespace numcpp{
 
 #define OP_DEF_CODE(opStr, opName)\
@@ -261,5 +262,17 @@ TRI_OP_DEF_CODE(sec, 1/std::cos)
 TRI_OP_DEF_CODE(csc, 1/std::sin)
 TRI_OP_DEF_CODE(cot, 1/std::tan)
 #undef TRI_OP_DEF_CODE
+
+template<class DType>
+template<class T>
+ShapedArray<op_ret_t<EOperation::MUL, DType, T>> ShapedArray<DType>::matmul(const ShapedArray<T> &obj) const
+{
+    Shape const &obj_shape = obj.getShape();
+    if(shape.dimNumber()!=2||obj_shape.dimNumber()!=2||shape[1]!=obj_shape[0])
+        throw Error::wrong(__FILE__, __func__,"Wrong Shape!");
+    auto res = numcpp::fill<op_ret_t<EOperation::MUL, DType, T>>(0, {shape[0], obj_shape[1]});
+    linalg::_matmul(mArray+0, obj.data(), res.data(), shape[0], obj_shape[0], obj_shape[1]);
+    return res;
+}
 }
 #endif
