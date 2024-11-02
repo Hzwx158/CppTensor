@@ -2,7 +2,7 @@
 #define NUMCPP_SHAPED_PRIVATE_ARRAY_OP
 #include "./array.hpp"
 #include <cmath>
-#include "../utils/matmul.hpp"
+#include "../utils/matmul/matmul.hpp"
 namespace numcpp{
 
 #define OP_DEF_CODE(opStr, opName)\
@@ -37,7 +37,7 @@ ShapedArray<DType>::operator opStr(const ShapedArray<T> &obj) const\
     auto ptr = new Ret[l];\
     if constexpr(DEBUG)\
         std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<l<<']'<<std::endl;\
-    auto obj_m = obj.mArray;\
+    auto obj_m = obj.data();\
     for(size_t i=0; i<l; ++i){\
         ptr[i] = mArray[Shape::offsetBeforeBroadcast(i, resShape, shape)]\
         opStr obj_m[Shape::offsetBeforeBroadcast(i, resShape, obj_shape)];\
@@ -79,6 +79,9 @@ OP_DEF_CODE(+, ADD)
 OP_DEF_CODE(-, SUB)
 OP_DEF_CODE(*, MUL)
 OP_DEF_CODE(%, MOL)
+OP_DEF_CODE(&, BIT)
+OP_DEF_CODE(|, BIT)
+OP_DEF_CODE(^, BIT)
 #undef OP_DEF_CODE
 
 //----------------------------------------除法要特供-------------------------------------
@@ -271,7 +274,16 @@ ShapedArray<op_ret_t<EOperation::MUL, DType, T>> ShapedArray<DType>::matmul(cons
     if(shape.dimNumber()!=2||obj_shape.dimNumber()!=2||shape[1]!=obj_shape[0])
         throw Error::wrong(__FILE__, __func__,"Wrong Shape!");
     auto res = numcpp::fill<op_ret_t<EOperation::MUL, DType, T>>(0, {shape[0], obj_shape[1]});
-    linalg::_matmul(mArray+0, obj.data(), res.data(), shape[0], obj_shape[0], obj_shape[1]);
+#define CALL_MATMUL(T1, T2, Ret)\
+    else if constexpr(std::is_same_v<T1, DType> && std::is_same_v<T2, T>){\
+        linalg::_matmul_##T1##_##T2(mArray+0, obj.data(), res.data(), shape[0], obj_shape[0], obj_shape[1]);\
+    }
+    
+    if constexpr(false);
+    ALL_MUL_C_TYPE(CALL_MATMUL)
+
+    else linalg::_matmul(mArray+0, obj.data(), res.data(), shape[0], obj_shape[0], obj_shape[1]);
+#undef CALL_MATMUL
     return res;
 }
 }

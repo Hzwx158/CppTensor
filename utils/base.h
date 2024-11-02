@@ -61,7 +61,7 @@ public:
  * @return func的返回值
  */
 template<class T, class Functor,class ReleaseFunc>
-auto with(T &&obj, Functor &&func, ReleaseFunc &&del){
+inline auto with(T &&obj, Functor &&func, ReleaseFunc &&del){
     Releaser releaser(obj, (ReleaseFunc&&)(del));
     return func(obj);
 }
@@ -118,6 +118,11 @@ template<>
 struct _INF<int8_t>{
     static constexpr int8_t inf = INT8_MAX;
     static constexpr int8_t ninf = INT8_MIN;
+};
+template<>
+struct _INF<char>{
+    static constexpr char inf = INT8_MAX;
+    static constexpr char ninf = INT8_MIN;
 };
 template<>
 struct _INF<float>{

@@ -144,18 +144,20 @@ public:
 
 template<class T>
 void _output_number(std::ostream &osm, const T &obj){
-    if constexpr(std::is_same_v<bool, T>){
+    if constexpr(std::is_same_v<bool, T>)
         osm << (obj?"true":"false");
-    }
     else{
-        if constexpr((!std::is_unsigned_v<T>)||std::is_same_v<T, double>||std::is_same_v<T, float>)
+        if constexpr((!std::is_unsigned_v<T>)||std::is_same_v<T, double>||std::is_same_v<T, float>){
             if(obj == ninf_v<T>){
                 osm << "-inf";
                 return;
             }
+        }
         if(obj == inf_v<T>)
             osm << "inf";
-        else osm << obj;  
+        else if constexpr(std::is_same_v<char, T> || std::is_same_v<unsigned char, T>)
+            osm << (int)(obj);
+        else osm << obj;
     }  
 }
 /**

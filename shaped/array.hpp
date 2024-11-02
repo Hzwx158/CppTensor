@@ -229,6 +229,9 @@ public:
     OP_DCL_CODE(*, MUL)
     OP_DCL_CODE(/, DIV)
     OP_DCL_CODE(%, MOL)
+    OP_DCL_CODE(&, BIT)
+    OP_DCL_CODE(|, BIT)
+    OP_DCL_CODE(^, BIT)
 #undef OP_DCL_CODE
 #define LOGICAL_OP_DCL_CODE(opStr)\
     template<class T>\

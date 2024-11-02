@@ -1,7 +1,10 @@
-#include "./errors.h"
-#include "./base.h"
-namespace numcpp::linalg{
+#ifndef NUMCPP_UTILS_MATMUL_HPP
+#define NUMCPP_UTILS_MATMUL_HPP
 
+namespace numcpp::linalg{
+extern"C"{
+    #include "c_matmul.h"
+}
 /**
  * @brief 矩阵乘法实现
  * @param mat1 矩阵1, 形状为(`a`, `b`)
@@ -15,9 +18,10 @@ namespace numcpp::linalg{
 template<class T1, class T2, class Ret = op_ret_t<EOperation::MUL, T1, T2>>
 int _matmul(
     T1 *mat1, T2 *mat2, 
-    op_ret_t<EOperation::MUL, T1, T2> *res, 
+    Ret *res, 
     size_t a, size_t b, size_t c
 ){
+    printf("Not right\n");
     if(a*b*c==0) return 0;
     if((!mat1)||(!mat2)||(!res)) return 0;
     size_t i,j;
@@ -30,7 +34,7 @@ int _matmul(
             c10=0,c11=0,c12=0,c13=0,
             c20=0,c21=0,c22=0,c23=0,
             c30=0,c31=0,c32=0,c33=0;
-            Ret a0k, a1k, a2k, a3k, bk0, bk1, bk2, bk3;
+            T1 a0k, a1k, a2k, a3k; T2 bk0, bk1, bk2, bk3;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             a2k_p = mat1+(i+2)*b;
@@ -57,7 +61,7 @@ int _matmul(
             c10=0,c11=0,c12=0,
             c20=0,c21=0,c22=0,
             c30=0,c31=0,c32=0;
-            Ret a0k, a1k, a2k, a3k, bk0, bk1, bk2;
+            T1 a0k, a1k, a2k, a3k; T2 bk0, bk1, bk2;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             a2k_p = mat1+(i+2)*b;
@@ -81,7 +85,7 @@ int _matmul(
             c10=0,c11=0,
             c20=0,c21=0,
             c30=0,c31=0;
-            Ret a0k, a1k, a2k, a3k, bk0, bk1;
+            T1 a0k, a1k, a2k, a3k; T2 bk0, bk1;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             a2k_p = mat1+(i+2)*b;
@@ -105,7 +109,7 @@ int _matmul(
             c10=0,
             c20=0,
             c30=0;
-            Ret a0k, a1k, a2k, a3k, bk0;
+            T1 a0k, a1k, a2k, a3k; T2 bk0;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             a2k_p = mat1+(i+2)*b;
@@ -138,7 +142,7 @@ int _matmul(
             Ret c00=0,c01=0,c02=0,c03=0,
             c10=0,c11=0,c12=0,c13=0,
             c20=0,c21=0,c22=0,c23=0;
-            Ret a0k, a1k, a2k, bk0, bk1, bk2, bk3;
+            T1 a0k, a1k, a2k; T2 bk0, bk1, bk2, bk3;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             a2k_p = mat1+(i+2)*b;
@@ -160,7 +164,7 @@ int _matmul(
             Ret c00=0,c01=0,c02=0,
             c10=0,c11=0,c12=0,
             c20=0,c21=0,c22=0;
-            Ret a0k, a1k, a2k, bk0, bk1, bk2;
+            T1 a0k, a1k, a2k; T2 bk0, bk1, bk2;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             a2k_p = mat1+(i+2)*b;
@@ -180,7 +184,7 @@ int _matmul(
             Ret c00=0,c01=0,
             c10=0,c11=0,
             c20=0,c21=0;
-            Ret a0k, a1k, a2k, bk0, bk1;
+            T1 a0k, a1k, a2k; T2 bk0, bk1;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             a2k_p = mat1+(i+2)*b;
@@ -200,7 +204,7 @@ int _matmul(
             Ret c00=0,
             c10=0,
             c20=0;
-            Ret a0k, a1k, a2k, bk0;
+            T1 a0k, a1k, a2k; T2 bk0;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             a2k_p = mat1+(i+2)*b;
@@ -225,7 +229,7 @@ int _matmul(
         for(;j+4<=c;j+=4){
             Ret c00=0,c01=0,c02=0,c03=0,
             c10=0,c11=0,c12=0,c13=0;
-            Ret a0k, a1k, bk0, bk1, bk2, bk3;
+            T1 a0k, a1k; T2 bk0, bk1, bk2, bk3;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             for(size_t k=0;k<b;++k){
@@ -243,7 +247,7 @@ int _matmul(
         case 3:{
             Ret c00=0,c01=0,c02=0,
             c10=0,c11=0,c12=0;
-            Ret a0k, a1k, bk0, bk1, bk2;
+            T1 a0k, a1k; T2 bk0, bk1, bk2;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             for(size_t k=0;k<b;++k){
@@ -259,7 +263,7 @@ int _matmul(
         case 2:{
             Ret c00=0,c01=0,
             c10=0,c11=0;
-            Ret a0k, a1k, bk0, bk1;
+            T1 a0k, a1k; T2 bk0, bk1;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             for(size_t k=0;k<b;++k){
@@ -275,7 +279,7 @@ int _matmul(
         case 1:{
             Ret c00=0,
             c10=0;
-            Ret a0k, a1k, bk0;
+            T1 a0k, a1k; T2 bk0;
             a0k_p = mat1+i*b;
             a1k_p = mat1+(i+1)*b;
             for(size_t k=0;k<b;++k){
@@ -296,7 +300,7 @@ int _matmul(
         j=0;
         for(;j+4<=c;j+=4){
             Ret c00=0,c01=0,c02=0,c03=0;
-            Ret a0k, bk0, bk1, bk2, bk3;
+            T1 a0k; T2 bk0, bk1, bk2, bk3;
             a0k_p = mat1+i*b;
             for(size_t k=0;k<b;++k){
                 bk0 = mat2[k*c+j]; bk1 = mat2[k*c+1+j]; bk2 = mat2[k*c+2+j]; bk3 = mat2[k*c+3+j];
@@ -310,7 +314,7 @@ int _matmul(
         switch(rest_cnt){
         case 3:{
             Ret c00=0,c01=0,c02=0;
-            Ret a0k, bk0, bk1, bk2;
+            T1 a0k; T2 bk0, bk1, bk2;
             a0k_p = mat1+i*b;
             for(size_t k=0;k<b;++k){
                 bk0 = mat2[k*c+j]; bk1 = mat2[k*c+1+j]; bk2 = mat2[k*c+2+j];
@@ -322,7 +326,7 @@ int _matmul(
         }
         case 2:{
             Ret c00=0,c01=0;
-            Ret a0k, bk0, bk1;
+            T1 a0k; T2 bk0, bk1;
             a0k_p = mat1+i*b;
             for(size_t k=0;k<b;++k){
                 bk0 = mat2[k*c+j]; bk1 = mat2[k*c+1+j];
@@ -350,9 +354,6 @@ int _matmul(
     return 0;
 }
 
-
-
-
 template<class T1, class T2, class Ret = op_ret_t<EOperation::MUL, T1, T2>>
 void _naive_matmul(
     T1 *mat1, T2 *mat2, 
@@ -370,5 +371,12 @@ void _naive_matmul(
         }
     }
 }
-
 }
+
+namespace numcpp{
+    using linalg::LLong;
+    using linalg::UInt;
+    using linalg::UShort;
+    using linalg::UChar;
+}
+#endif

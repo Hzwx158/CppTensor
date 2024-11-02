@@ -211,6 +211,10 @@ void ShapedArray<DType>::to(const Shape &shape_){
 template<class DType>
 template<class T>
 ShapedArray<T> ShapedArray<DType>::to() const{
+    if constexpr(std::is_same_v<T, DType>){
+        return *this;
+    }else{
+    // 正常函数
     T *ptr = new T[shape.bufSize()];
 #if DEBUG
     std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<shape.bufSize()<<']'<<std::endl;
@@ -220,7 +224,7 @@ ShapedArray<T> ShapedArray<DType>::to() const{
         ptr[i] = T(mArray[i]); 
     }
     return ShapedArray<T>(std::move(ptr), shape);
-}
+}}
 
 template<class DType>
 ShapedArray<DType> ShapedArray<DType>::reshape(const Shape &shape_){
