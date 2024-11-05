@@ -1,5 +1,5 @@
-#ifndef T_MATMUL_H
-#define T_MATMUL_H
+#ifndef NUMCPP_UTILS_C_MATMUL_H
+#define NUMCPP_UTILS_C_MATMUL_H
 typedef unsigned long long size_t;
 typedef long long LLong;
 typedef unsigned int UInt;
@@ -109,7 +109,7 @@ F(UChar, size_t, size_t)\
 F(UChar, float, float)\
 F(UChar, double, double)\
 /* UChar */\
-F(char, char, char)\
+F(char, char, int)\
 F(char, UChar, int)\
 F(char, short, int)\
 F(char, UShort, int)\

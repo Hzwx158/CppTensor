@@ -56,6 +56,16 @@ std::pair<size_t,size_t> Shape::offsetOf(const SizeTArray &index) const{
     return {be,resCnt};
 }
 
+Shape::SizeTArray Shape::indexOf(size_t offset) const{
+    const auto dim_number = shape.size();
+    SizeTArray res(dim_number);
+    for(size_t i=0;i<dim_number;++i){
+        res[i] = offset / product[i+1];
+        offset %= product[i+1];
+    }
+    return res;
+}
+
 void Shape::squeeze(size_t dim){
     const auto oldDimNumber = dimNumber();
     if(!toBoundedIndex(dim, oldDimNumber, &dim))

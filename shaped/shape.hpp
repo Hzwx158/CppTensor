@@ -11,11 +11,15 @@ public:
      * @brief 计算广播的形状
      * @param shape1 形状1
      * @param shape2 形状2
-     * @return 广播后的形状；如果changed是false则为空
+     * @return 广播后的形状；
     */
-    static Shape broadcast(const Shape &shape1, const Shape &shape2);
-
-    static Shape broadcast(const std::vector<Shape> &shapes);
+    static Shape broadcast(Shape const &shape1, Shape const &shape2);
+    /**
+     * @brief 计算广播的形状
+     * @param shapes 一堆形状
+     * @return 广播后的形状；
+    */
+    static Shape broadcast(std::vector<Shape> const &shapes);
 
     /**
      * @brief 给定一个广播后形状中的偏移量，计算在广播前的Shape中，该坐标的偏移量; 时间复杂度 O(broShape.dimNumber())
@@ -25,7 +29,7 @@ public:
      * @return 返回广播前该偏移量对应的偏移量
      * @attention 不会检查srcShape和broShape是否符合广播机制，也不会对二者进行广播。请使用者调用时一定要保证srcShape可以广播到broShape中
     */
-    static size_t offsetBeforeBroadcast(size_t broOffset, const Shape &broShape, const Shape &srcShape);
+    static size_t offsetBeforeBroadcast(size_t broOffset, Shape const &broShape, Shape const &srcShape);
 private:
     SizeTArray shape; 
     SizeTArray product; 
@@ -41,7 +45,6 @@ public:
      * @brief 直接构造
      * @param shape_ 直接存到shape
      * @param product_ 直接存到product
-     * @attention shape、product都是倒着存的，谨慎！
     */
     Shape(SizeTArray &&shape_, SizeTArray &&product_)
         :shape(std::move(shape_))
@@ -51,7 +54,7 @@ public:
      * @brief 默认构造函数，为空shape
     */
     constexpr Shape():shape(),product(){}
-    Shape(const Shape &obj):shape(obj.shape), product(obj.product){}
+    Shape(Shape const &obj):shape(obj.shape), product(obj.product){}
     Shape(Shape &&obj):shape(std::move(obj.shape)), product(std::move(obj.product)){}
     /**
      * @brief 返回第idx个维度的长度
@@ -123,7 +126,13 @@ public:
      * @param index 多维坐标，如{1,0,-1}
      * @return 一个pair，first是该坐标对应的起始偏移量，second是该子数组含元素(即数字)个数
     */
-    std::pair<size_t,size_t> offsetOf(const SizeTArray &index) const;
+    std::pair<size_t,size_t> offsetOf(SizeTArray const &index) const;
+    /**
+     * @brief 获取某个offset的坐标
+     * @param offset 偏移量/第几个元素
+     * @return 一个FixedArray<size_t>，是offset对应的坐标
+     */
+    SizeTArray indexOf(size_t offset) const;
     /**
      * @brief 缩减长度是1的维度
     */
@@ -134,16 +143,16 @@ public:
     */
     void squeeze(size_t dim);
 
-    Shape &operator=(const Shape &)=default;
+    Shape &operator=(Shape const &)=default;
     Shape &operator=(Shape &&)=default;
-    bool operator==(const Shape &shape_) const;
-    bool operator!=(const Shape &shape_) const {return !((*this)==shape_);}
-    Shape operator+(const Shape &shape_) const;
+    bool operator==(Shape const &shape_) const;
+    bool operator!=(Shape const &shape_) const {return !((*this)==shape_);}
+    Shape operator+(Shape const &shape_) const;
     H_OUTPUTABLE(Shape);
 };
 
 template<class T>
-void _output_number(std::ostream &osm, const T &obj){
+void _output_number(std::ostream &osm, T const &obj){
     if constexpr(std::is_same_v<bool, T>)
         osm << (obj?"true":"false");
     else{
@@ -170,9 +179,9 @@ void _output_number(std::ostream &osm, const T &obj){
 */
 template<class T>
 void printShaped(
-    const T *arr, const Shape &shape, 
+    const T *arr, Shape const &shape, 
     std::ostream &osm=std::cout,
-    const std::function<void(std::ostream&,const T &)> &output = _output_number<T>
+    const std::function<void(std::ostream&,T const &)> &output = _output_number<T>
 ) {
     if(shape.empty()){
         //空数组
@@ -222,8 +231,8 @@ void printShaped(
 template<class Number>
 std::pair<Number *, Shape> broadcastShaped(
     const Number *src, 
-    const Shape &srcShape, 
-    const Shape &anoShape, 
+    Shape const &srcShape, 
+    Shape const &anoShape, 
     bool needBroadcast=true
 ){
     //1.需要形状非空
@@ -231,7 +240,7 @@ std::pair<Number *, Shape> broadcastShaped(
         throw Error::wrong(__FILE__, __func__, "<srcShape> is empty!");
     if(anoShape.empty())
         throw Error::wrong(__FILE__,__func__, "<anoShape> is empty!");
-    const Shape &resShape = (needBroadcast?Shape::broadcast(srcShape, anoShape):anoShape);
+    Shape const &resShape = (needBroadcast?Shape::broadcast(srcShape, anoShape):anoShape);
     const auto srcBufSize=srcShape.bufSize();
     const auto srcDimNumber=srcShape.dimNumber();
     const auto resBufSize=resShape.bufSize();

@@ -7,4 +7,3 @@ include_directories("./shaped")
 aux_source_directory(./utils utils_src)
 include_directories("./utils")
 add_executable(NumCpp main.cpp ${shaped_src} ${utils_src})
-

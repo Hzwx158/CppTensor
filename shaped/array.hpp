@@ -46,9 +46,9 @@ public://Memory
      * @brief 构造函数
      * @param num 数字，初始化值
     */
-    ShapedArray(const DType &num);
+    ShapedArray(DType const &num);
 
-    explicit ShapedArray(DType *&&ptr, const Shape &shape_)
+    explicit ShapedArray(DType *&&ptr, Shape const &shape_)
         :mArray(std::move(ptr)), shape(shape_){}
     explicit ShapedArray(DType *&&ptr, Shape &&shape_)
         :mArray(std::move(ptr)), shape(std::move(shape_)){}
@@ -57,13 +57,13 @@ public://Memory
      * @param init_list 初始化列表
      * @param shape_ 初始化形状; 默认为空，会自动补充为一维
     */
-    explicit ShapedArray(std::initializer_list<DType> init_list, const Shape &shape_=Shape());
+    explicit ShapedArray(std::initializer_list<DType> init_list, Shape const &shape_=Shape());
     /**
      * @brief 构造函数
      * @param init_vec 初始化列表
      * @param shape_ 初始化形状; 默认为空，会自动补充为一维
     */
-    explicit ShapedArray(const std::vector<DType> &init_vec, const Shape &shape_=Shape());
+    explicit ShapedArray(std::vector<DType> const &init_vec, Shape const &shape_=Shape());
     /**
      * @todo 改为stack
      * @brief 构造函数，构造高维tensor
@@ -71,13 +71,13 @@ public://Memory
      * @param shape_ 这些tensor的组合的形状，默认填充为{tensors.size()}
      * @attention 直接用initialized_list传参会出错, 受限于C++语法, 我无法更改此错误. 请只传vector类型的参数或在initialized_list前显式标注ShapedArray
     */
-    explicit ShapedArray(const std::vector<ShapedArray> &tensors, const Shape &shape_=Shape());
+    explicit ShapedArray(std::vector<ShapedArray> const &tensors, Shape const &shape_=Shape());
     /**
      * @brief 拷贝构造函数
      * @attention 会新分配内存
      * @param obj 另一个对象
     */
-    ShapedArray(const ShapedArray &obj);
+    ShapedArray(ShapedArray const &obj);
     /**
      * @brief 移动构造函数
      * @attention 不会新分配内存
@@ -144,7 +144,7 @@ public:
      * @param shape_ 新形状
      * @attention 元素个数要一致
     */
-    void to(const Shape &shape_);
+    void to(Shape const &shape_);
     /**
      * @brief 更改类型
      * @tparam T 更改的dtype
@@ -157,12 +157,12 @@ public:
      * @return 
      * @attention 元素个数要一致
     */
-    ShapedArray<DType> reshape(const Shape &shape_);
+    ShapedArray<DType> reshape(Shape const &shape_);
     /**
      * @brief 获取形状
      * @return 形状
     */
-    const Shape &getShape() const {return shape;}
+    Shape const &getShape() const {return shape;}
     /**
      * @brief 获取数据量
      * @return 数据量
@@ -181,7 +181,7 @@ public:
      * @return 一个ShapedArray<DType>
      */
     template<class ...Args>
-    ShapedArray<DType> at(const Args &... indices) const;
+    ShapedArray<DType> at(Args const &... indices) const;
     /**
      * @brief 获取某些元素，同numpy.ndarray.__getitem__
      * @param indices 下标
@@ -190,14 +190,26 @@ public:
      * c++: a.at(IDX{1,2}, 3, Slice(3,4))
      */
     template<class ...Args>
-    ShapedArray<DType*> at(const Args &... indices);
+    ShapedArray<DType*> at(Args const &... indices);
+    /**
+     * @brief 用bool下标获取元素
+     * @param cond bool下标
+     * @return 一个ShapedArray<DType*>
+     */
+    ShapedArray<DType*> at(ShapedArray<bool> const &cond);
+    /**
+     * @brief 用bool下标获取元素
+     * @param cond bool下标
+     * @return 一个ShapedArray<DType>
+     */
+    ShapedArray<DType> at(ShapedArray<bool> const &cond) const;
     /**
      * @brief 对某个位置的元素干某事
      * @param func 元素的操作函数，只接收一个参数
      * @param index 元素的坐标
      */
     template<class Functor>
-    void apply_on(Functor &&func, const FixedArray<size_t> &index);
+    void apply_on(Functor &&func, FixedArray<size_t> const &index);
     /**
      * @brief 缩减长度是1的维度
     */
@@ -213,16 +225,16 @@ public:
      * @return 相同则true
      * @attention 不是operator==
     */
-    bool isEqualTo(const ShapedArray &obj) const;
+    bool isEqualTo(ShapedArray const &obj) const;
 #define OP_DCL_CODE(opStr, opName)\
     template<class T>\
-    ShapedArray<DType> &operator opStr##=(const ShapedArray<T> &obj);\
+    ShapedArray<DType> &operator opStr##=(ShapedArray<T> const &obj);\
     template<class T>\
-    ShapedArray<DType> &operator opStr##=(const T &num);\
+    ShapedArray<DType> &operator opStr##=(T const &num);\
     template<class T>\
-    ShapedArray<op_ret_t<EOperation::opName, DType, T>> operator opStr(const ShapedArray<T> &obj) const;\
+    ShapedArray<op_ret_t<EOperation::opName, DType, T>> operator opStr(ShapedArray<T> const &obj) const;\
     template<class T, class useless = std::enable_if_t<!is_ShapedArray_v<T>>>\
-    ShapedArray<op_ret_t<EOperation::opName, DType, T>> operator opStr(const T &obj) const;
+    ShapedArray<op_ret_t<EOperation::opName, DType, T>> operator opStr(T const &obj) const;
 
     OP_DCL_CODE(+, ADD)
     OP_DCL_CODE(-, SUB)
@@ -235,9 +247,9 @@ public:
 #undef OP_DCL_CODE
 #define LOGICAL_OP_DCL_CODE(opStr)\
     template<class T>\
-    ShapedArray<bool> operator opStr (const ShapedArray<T> &obj) const;\
+    ShapedArray<bool> operator opStr (ShapedArray<T> const &obj) const;\
     template<class T>\
-    ShapedArray<bool> operator opStr (const T &obj) const;
+    ShapedArray<bool> operator opStr (T const &obj) const;
 
     LOGICAL_OP_DCL_CODE(>)
     LOGICAL_OP_DCL_CODE(>=)
@@ -248,16 +260,16 @@ public:
     
 #undef LOGICAL_OP_DCL_CODE
     template<class T>
-    ShapedArray<int> compare(const ShapedArray<T> &obj) const;
+    ShapedArray<int> compare(ShapedArray<T> const &obj) const;
     template<class T>
-    ShapedArray<int> compare(const T &obj) const;
+    ShapedArray<int> compare(T const &obj) const;
     /**
      * @brief 矩阵乘法
      * @param obj 另一个矩阵
      * @return 结果
      */
     template<class T>
-    ShapedArray<op_ret_t<EOperation::MUL, DType, T>> matmul(const ShapedArray<T> &obj) const;
+    ShapedArray<op_ret_t<EOperation::MUL, DType, T>> matmul(ShapedArray<T> const &obj) const;
 
     ShapedArray<double> exp() const;
     ShapedArray<double> log() const;
@@ -270,27 +282,27 @@ public:
     ShapedArray<double> sec() const;
     ShapedArray<double> csc() const;
     ShapedArray<double> cot() const;
-    // friend ShapedArray log(const ShapedArray &obj);
-    // friend ShapedArray sigmoid(const ShapedArray &obj);
-    // friend ShapedArray sin(const ShapedArray &obj);
-    // friend ShapedArray cos(const ShapedArray &obj);
-    // friend ShapedArray tan(const ShapedArray &obj);
-    // friend ShapedArray cot(const ShapedArray &obj);
-    // friend ShapedArray sec(const ShapedArray &obj);
-    // friend ShapedArray csc(const ShapedArray &obj);
-    // friend ShapedArray asin(const ShapedArray &obj);
-    // friend ShapedArray acos(const ShapedArray &obj);
-    // friend ShapedArray atan(const ShapedArray &obj);
+    // friend ShapedArray log(ShapedArray const &obj);
+    // friend ShapedArray sigmoid(ShapedArray const &obj);
+    // friend ShapedArray sin(ShapedArray const &obj);
+    // friend ShapedArray cos(ShapedArray const &obj);
+    // friend ShapedArray tan(ShapedArray const &obj);
+    // friend ShapedArray cot(ShapedArray const &obj);
+    // friend ShapedArray sec(ShapedArray const &obj);
+    // friend ShapedArray csc(ShapedArray const &obj);
+    // friend ShapedArray asin(ShapedArray const &obj);
+    // friend ShapedArray acos(ShapedArray const &obj);
+    // friend ShapedArray atan(ShapedArray const &obj);
     
-    // friend ShapedArray arange(DType be, DType en, DType step, const Shape &shape);
+    // friend ShapedArray arange(DType be, DType en, DType step, Shape const &shape);
 };
 
 template<class T>
-inline Shape shapeOf(const T &obj){
+inline Shape shapeOf(T const &obj){
     return Shape({});
 }
 template<class T>
-inline Shape shapeOf(const ShapedArray<T> &obj){
+inline Shape shapeOf(ShapedArray<T> const &obj){
     return obj.getShape();
 }
 

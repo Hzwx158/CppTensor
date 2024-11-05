@@ -1,7 +1,8 @@
-#include "shaped/array.hpp"
 #include <chrono>
+#include "shaped/array.hpp"
+#include "./utils/thread_pool.hpp"
 
-using namespace numcpp;
+#define TEST_CPP 0
 using namespace std::chrono;
 using Time = decltype(system_clock::now());
 /**
@@ -11,7 +12,7 @@ using Time = decltype(system_clock::now());
  */
 template<class Functor>
 void compute_running_time(size_t repeat_times, Functor &&f){
-    with(system_clock::now(), [&repeat_times, &f](Time){
+    numcpp::with(system_clock::now(), [&repeat_times, &f](Time){
         for(size_t i=0;i<repeat_times;++i)
             f();
     }, [](Time const&start_time){
@@ -20,18 +21,21 @@ void compute_running_time(size_t repeat_times, Functor &&f){
         std::cout<<"----------------------\nusing time:"<<duration/1000.0<<"ms"<<std::endl;
     });
 }
+using numcpp::constant;
 //进度:todo np.where如何声明实现并且好用
 int main(){
+#if !TEST_CPP
     auto mat1 = numcpp::arange<int>(0, 12, 1, {4,3});
     auto mat2 = numcpp::fill<int>(1, {4,3});
+    constexpr bool output = 1;
     compute_running_time(1,[&](){
-        constexpr bool output = 1;
-        auto mat3 = 0 - (mat1 & mat2);
-        if constexpr(output){
-            std::cout<<"mat1:\n"<<mat1<<"\nmat2:\n"<<mat2<<"\nmat3:\n"<<mat3<<std::endl;
-        }
+        std::cout<<numcpp::sin(constant::pi*0.5)<<std::endl;
     }); 
-    return 0;}
+#else
+
+#endif  
+    return 0;
+} 
 /** 开发进度记录
  * √各个运算的简单实现
  * np.where的设计和实现

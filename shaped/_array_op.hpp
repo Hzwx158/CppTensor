@@ -8,7 +8,7 @@ namespace numcpp{
 #define OP_DEF_CODE(opStr, opName)\
 template<class DType>\
 template<class T>\
-ShapedArray<DType> &ShapedArray<DType>::operator opStr##= (const ShapedArray<T> &obj){\
+ShapedArray<DType> &ShapedArray<DType>::operator opStr##= (ShapedArray<T> const &obj){\
     Shape const &obj_shape = obj.getShape();\
     if(Shape::broadcast(shape, obj_shape)!=shape)\
         throw Error::wrong(__FILE__,__func__,"Wrong shape!");\
@@ -19,7 +19,7 @@ ShapedArray<DType> &ShapedArray<DType>::operator opStr##= (const ShapedArray<T> 
 }\
 template<class DType>\
 template<class T>\
-ShapedArray<DType> &ShapedArray<DType>::operator opStr##= (const T &num){\
+ShapedArray<DType> &ShapedArray<DType>::operator opStr##= (T const &num){\
     size_t l = shape.bufSize();\
     for(size_t i=0; i<l; ++i)\
         mArray[i] opStr##= num;\
@@ -28,7 +28,7 @@ ShapedArray<DType> &ShapedArray<DType>::operator opStr##= (const T &num){\
 template<class DType>\
 template<class T>\
 ShapedArray<op_ret_t<EOperation::opName, DType, T>> \
-ShapedArray<DType>::operator opStr(const ShapedArray<T> &obj) const\
+ShapedArray<DType>::operator opStr(ShapedArray<T> const &obj) const\
 {\
     Shape const &obj_shape = obj.getShape();\
     Shape resShape = Shape::broadcast(shape, obj_shape);\
@@ -47,7 +47,7 @@ ShapedArray<DType>::operator opStr(const ShapedArray<T> &obj) const\
 template<class DType>\
 template<class T, class useless>\
 ShapedArray<op_ret_t<EOperation::opName, DType, T>> \
-ShapedArray<DType>::operator opStr(const T &num) const\
+ShapedArray<DType>::operator opStr(T const &num) const\
 {\
     size_t l = shape.bufSize();\
     using Ret = decltype(*mArray opStr num);\
@@ -61,7 +61,7 @@ ShapedArray<DType>::operator opStr(const T &num) const\
 }\
 template<class DType, class T, class useless = std::enable_if_t<!is_ShapedArray_v<T>>>\
 ShapedArray<op_ret_t<EOperation::opName, T, DType>> \
-operator opStr(const T &num, const ShapedArray<DType> &obj)\
+operator opStr(T const &num, ShapedArray<DType> const &obj)\
 {\
     Shape const &obj_shape = obj.getShape();\
     size_t l = obj_shape.bufSize();\
@@ -105,7 +105,7 @@ inline T &_div_assigned_(T &a, double b){
 
 template<class DType>
 template<class T>
-ShapedArray<DType> &ShapedArray<DType>::operator/=(const ShapedArray<T> &obj){
+ShapedArray<DType> &ShapedArray<DType>::operator/=(ShapedArray<T> const &obj){
     Shape const &obj_shape = obj.getShape();
     if(Shape::broadcast(shape, obj_shape)!=shape)
         throw Error::wrong(__FILE__,__func__,"Wrong shape!");
@@ -116,7 +116,7 @@ ShapedArray<DType> &ShapedArray<DType>::operator/=(const ShapedArray<T> &obj){
 }
 template<class DType>
 template<class T>
-ShapedArray<DType> &ShapedArray<DType>::operator/= (const T &num){
+ShapedArray<DType> &ShapedArray<DType>::operator/= (T const &num){
     size_t l = shape.bufSize();
     for(size_t i=0; i<l; ++i)
         _div_assigned_(mArray[i], num);
@@ -125,7 +125,7 @@ ShapedArray<DType> &ShapedArray<DType>::operator/= (const T &num){
 template<class DType>
 template<class T>
 ShapedArray<op_ret_t<EOperation::DIV, DType, T>> 
-ShapedArray<DType>::operator/(const ShapedArray<T> &obj) const
+ShapedArray<DType>::operator/(ShapedArray<T> const &obj) const
 {
     Shape const &obj_shape = obj.getShape();
     Shape resShape = Shape::broadcast(shape, obj_shape);
@@ -145,7 +145,7 @@ ShapedArray<DType>::operator/(const ShapedArray<T> &obj) const
 template<class DType>
 template<class T, class useless>
 ShapedArray<op_ret_t<EOperation::DIV, DType, T>>
-ShapedArray<DType>::operator/(const T &num) const
+ShapedArray<DType>::operator/(T const &num) const
 {
     size_t l = shape.bufSize();
     auto ptr = new double[l];
@@ -158,7 +158,7 @@ ShapedArray<DType>::operator/(const T &num) const
 }
 template<class DType, class T, class useless = std::enable_if_t<!is_ShapedArray_v<T>>>
 ShapedArray<op_ret_t<EOperation::DIV, T, DType>>
-operator/(const T &num, const ShapedArray<DType> &obj)
+operator/(T const &num, ShapedArray<DType> const &obj)
 {
     Shape const &obj_shape = obj.getShape();
     size_t l = obj_shape.bufSize();
@@ -176,7 +176,7 @@ operator/(const T &num, const ShapedArray<DType> &obj)
 #define LOGICAL_OP_DEF_CODE(opStr)\
 template<class DType>\
 template<class T>\
-ShapedArray<bool> ShapedArray<DType>::operator opStr(const ShapedArray<T> &obj) const{\
+ShapedArray<bool> ShapedArray<DType>::operator opStr(ShapedArray<T> const &obj) const{\
     Shape obj_shape = obj.getShape();\
     Shape resShape = Shape::broadcast(shape, obj_shape);\
     size_t l = resShape.bufSize();\
@@ -190,7 +190,7 @@ ShapedArray<bool> ShapedArray<DType>::operator opStr(const ShapedArray<T> &obj) 
 }\
 template<class DType>\
 template<class T>\
-ShapedArray<bool> ShapedArray<DType>::operator opStr(const T &num) const{\
+ShapedArray<bool> ShapedArray<DType>::operator opStr(T const &num) const{\
     size_t l = shape.bufSize();\
     bool *ptr = new bool[l];\
     for(size_t i=0;i<l;++i){\
@@ -214,7 +214,7 @@ int _compare_(T1 const &a, T2 const &b){
 }
 template<class DType>
 template<class T>
-ShapedArray<int> ShapedArray<DType>::compare(const ShapedArray<T> &obj) const{
+ShapedArray<int> ShapedArray<DType>::compare(ShapedArray<T> const &obj) const{
     Shape obj_shape = obj.getShape();
     Shape resShape = Shape::broadcast(shape, obj_shape);
     size_t l = resShape.bufSize();
@@ -230,7 +230,7 @@ ShapedArray<int> ShapedArray<DType>::compare(const ShapedArray<T> &obj) const{
 }
 template<class DType>
 template<class T>
-ShapedArray<int> ShapedArray<DType>::compare(const T &num) const{
+ShapedArray<int> ShapedArray<DType>::compare(T const &num) const{
     size_t l = shape.bufSize();
     int *ptr = new int[l];
     for(size_t i=0;i<l;++i){
@@ -240,6 +240,7 @@ ShapedArray<int> ShapedArray<DType>::compare(const T &num) const{
 }
 
 //----------------------------------------三角函数---------------------------------------
+
 #define TRI_OP_DEF_CODE(func, ...)\
 template<class DType>\
 ShapedArray<double> ShapedArray<DType>::func() const{\
@@ -251,7 +252,8 @@ ShapedArray<double> ShapedArray<DType>::func() const{\
     return ShapedArray<double>(std::move(ptr), shape);\
 }\
 template<class DType>\
-inline ShapedArray<double> func(const ShapedArray<DType> &obj){return obj.func();}
+inline ShapedArray<double> func(ShapedArray<DType> const &obj){return obj.func();}\
+inline double func(double num){return __VA_ARGS__ (num);}
 
 TRI_OP_DEF_CODE(exp, std::exp)
 TRI_OP_DEF_CODE(log, std::log)
@@ -268,7 +270,7 @@ TRI_OP_DEF_CODE(cot, 1/std::tan)
 
 template<class DType>
 template<class T>
-ShapedArray<op_ret_t<EOperation::MUL, DType, T>> ShapedArray<DType>::matmul(const ShapedArray<T> &obj) const
+ShapedArray<op_ret_t<EOperation::MUL, DType, T>> ShapedArray<DType>::matmul(ShapedArray<T> const &obj) const
 {
     Shape const &obj_shape = obj.getShape();
     if(shape.dimNumber()!=2||obj_shape.dimNumber()!=2||shape[1]!=obj_shape[0])

@@ -20,7 +20,7 @@ __runOnceHelper=true;
 
 //可输出类标签
 #define H_OUTPUTABLE(ClassName) \
-friend std::ostream & operator<<(std::ostream &osm, const ClassName &obj)
+friend std::ostream & operator<<(std::ostream &osm, ClassName const &obj)
 
 //使用stdio
 #define useStdIO using std::cin;using std::cout;using std::endl;
@@ -173,7 +173,7 @@ struct constant{
  * @return 是则true
  */
 template<class T>
-bool isZeros(const T &obj){
+bool isZeros(T const &obj){
     const size_t size = sizeof(obj);
     printf("%llu\n",size);
     if(size<=1ull)

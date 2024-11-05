@@ -3,32 +3,56 @@
 #include "./array.hpp"
 namespace numcpp{
 
+/**
+ * @brief 获取bool下标对应的数字下标。注意，这里的下标和np.where不一样，是每个点的下标
+ * @param boolArray bool下标
+ * @return 每个点的下标
+ */
+std::vector<FixedArray<size_t>> where(ShapedArray<bool> const &boolArray)
+{
+    Shape const &shape = boolArray.getShape();
+    auto ptr = boolArray.data();
+    const auto bufSize = boolArray.getSize();
+    std::vector<FixedArray<size_t>> res(bufSize, FixedArray<size_t>{});
+    size_t k=0;
+    for(size_t i=0;i<bufSize;++i){
+        if(ptr[i]){
+            res[k++] = shape.indexOf(i); 
+            // std::cout<< res[k-1] <<std::endl;
+        }
+    }
+    res.erase(res.begin()+k, res.end());
+    res.shrink_to_fit();
+    return res;
+}
+
 template<class Number>
 static inline ShapedArray<long long> to_shaped(Number n){
     return ShapedArray<long long>(static_cast<long long>(n));
 }
-static inline ShapedArray<Slice> to_shaped(const Slice &slc){
+static inline ShapedArray<Slice> to_shaped(Slice const &slc){
     return ShapedArray<Slice>(slc);
 }
 template<class DType>
-static inline const ShapedArray<DType> &to_shaped(const ShapedArray<DType> &obj){
+static inline ShapedArray<DType> const &to_shaped(ShapedArray<DType> const &obj){
     return obj;
 }
+
 /**
  * @brief 获取每个所取点的tuple of size_t下标和Shape.
+ * `$src` [`N`-sized tuple of `$idx`] = $(`idx` + `src`[`N`:])（在没有slice的情况下）
  * @param shape 被取下标的ShapedArray的shape
  * @param index0, indices 下标
  * @return 一个vector和一个Shape；vector每个元素代表每个点的下标, Shape代表结果的形状.
- * `$src` [`N`-sized tuple of `$idx`] = $(`idx` + `src`[`N`:])（在没有slice的情况下）
  */
 template<class Index0, class ...Indices>
 std::pair<
     std::vector<FixedArray<size_t>>,
     Shape
 > getUllIndices(
-    const Shape &shape, 
-    const Index0 &index0, 
-    const Indices &... indices
+    Shape const &shape, 
+    Index0 const &index0, 
+    Indices const &... indices
 ){
     size_t dimSize0 = shape.dimSizeOf(0);
     // 1.先把非tuple of xxx的解决了
@@ -51,21 +75,21 @@ std::pair<
     }
     else{ //此else不可省，to编译
     // 2.都转为ShapedArray下标
-    std::tuple<decltype(to_shaped(index0)),decltype(to_shaped(std::declval<const Indices &>()))...> 
+    std::tuple<decltype(to_shaped(index0)),decltype(to_shaped(std::declval<Indices const &>()))...> 
     shaped_indices = {
         to_shaped(index0),
         to_shaped(indices)...
     };
     // 3.计算广播后shape
-    static auto get_broadcast_shape = [](const auto &... args)->Shape
+    static auto get_broadcast_shape = [](auto const &... args)->Shape
     {
-        // ([](const auto &a){
+        // ([](auto const &a){
         //     std::cout<<"&b:"<<&a<<&a.getShape()<<std::endl;
         // }(args),...);
         return Shape::broadcast({numcpp::shapeOf(args)...});
     };
-    // std::apply([](const auto &...t){
-    //     ([](const auto &a){
+    // std::apply([](auto const &...t){
+    //     ([](auto const &a){
     //         std::cout<<"&a:"<<&a<<"\tshape:"<<&a.getShape()<<std::endl;
     //     }(t),...);
     // }, shaped_indices);
@@ -105,7 +129,7 @@ std::pair<
     }
     // 6.对tuple of iterable的每一个any，取at的结果
     size_t idx_final_offset=0;
-    auto get_i_th_tuple_helper = [&final_shape, &shape, &idx_final_offset](const auto &...args) 
+    auto get_i_th_tuple_helper = [&final_shape, &shape, &idx_final_offset](auto const &...args) 
     {
         //该函数用于计算tuple of any的每一个的第i项。
         return getUllIndices(shape,
@@ -136,23 +160,21 @@ std::pair<
 
 template<class DType>
 template<class ...Args>
-ShapedArray<DType*> ShapedArray<DType>::at(const Args &... indices)
+ShapedArray<DType*> ShapedArray<DType>::at(Args const &... indices)
 {
     auto [index_array, res_shape] = getUllIndices(this->shape, indices...);
     ShapedArray<DType*> res = numcpp::fill<DType*>(nullptr, res_shape);
     DType **dst = res.data();
-    size_t cnt=0;
     for(Shape::SizeTArray &idx:index_array){
         auto [offset, eleCnt] = shape.offsetOf(idx);
         for(size_t i=0; i<eleCnt; ++i)
-            dst[i+cnt] = mArray + offset + i;
-        cnt+=eleCnt;
+            *(dst++) = mArray + offset + i;
     }
     return res;
 }
 template<class DType>
 template<class ...Args>
-ShapedArray<DType> ShapedArray<DType>::at(const Args &... indices) const
+ShapedArray<DType> ShapedArray<DType>::at(Args const &... indices) const
 {
     auto [index_array, res_shape] = getUllIndices(this->shape, indices...);
     ShapedArray<DType> res = numcpp::fill<DType>(DType(), res_shape);
@@ -164,11 +186,44 @@ ShapedArray<DType> ShapedArray<DType>::at(const Args &... indices) const
     }
     return res;
 }
-
+template<class DType>
+ShapedArray<DType> ShapedArray<DType>::at(ShapedArray<bool> const &cond) const
+{
+    auto indices = numcpp::where(cond);
+    size_t point_cnt = indices.size();
+    if(!indices.size())
+        return {};
+    Shape const &cond_shape = cond.getShape();
+    ShapedArray<DType> res = numcpp::fill(DType(), Shape{point_cnt*shape.stepSizeOf(indices[0].size()-1)});
+    auto *ptr = res.data();
+    for(auto &index:indices){
+        auto [offset, cnt] = cond_shape.offsetOf(index);
+        memcpy(ptr, mArray+offset, sizeof(DType)*cnt);
+        ptr += cnt;
+    }
+    return res;
+}
+template<class DType>
+ShapedArray<DType*> ShapedArray<DType>::at(ShapedArray<bool> const &cond)
+{
+    auto indices = numcpp::where(cond);
+    size_t point_cnt = indices.size();
+    if(!indices.size())
+        return {};
+    auto res = numcpp::fill<DType*>(nullptr, Shape{point_cnt*shape.stepSizeOf(indices[0].size()-1)});
+    auto *ptr = res.data();
+    for(auto &index:indices){
+        auto [offset, eleCnt] = shape.offsetOf(index);
+        // std::cout<<"offset:"<<offset<<"\neleCnt:"<<eleCnt<<std::endl;
+        for(size_t i=0; i<eleCnt; ++i)
+            *(ptr++) = mArray + offset + i;
+    }
+    return res;
+}
 
 template<class DType>
 template<class Functor>
-void ShapedArray<DType>::apply_on(Functor &&func, const FixedArray<size_t> &index){
+void ShapedArray<DType>::apply_on(Functor &&func, FixedArray<size_t> const &index){
     size_t bufSize = shape.bufSize();
     if(index.size()==0)
         for(size_t i=0;i<bufSize;++i)

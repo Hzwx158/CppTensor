@@ -142,6 +142,15 @@ public:
     iterator end() const {return mArray+len;}
     reverse_iterator rbegin() const {return mArray+len-1;}
     reverse_iterator rend() const {return mArray-1;}
+    H_OUTPUTABLE(FixedArray){
+        osm << "F{";
+        for(size_t i=0; i<obj.len; ++i){
+            osm << obj.mArray[i];
+            if(i+1!=obj.len)
+                osm << ',';
+        }
+        return osm << '}';
+    }
 };
 
 template<class T>

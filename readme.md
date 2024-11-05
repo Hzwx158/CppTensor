@@ -1,5 +1,11 @@
 # Cpp Tensor: ShapedArray
 Write this to learn numpy.
+>## Symbols
+To represent the relationship between shape and tensors, I use some symbols:
+- $\$\vec{s}$ means a tensor with a shape of $\vec{s}$. For instance, $\$(3,4)$ means a matrix with shape being $(3,4)$. 
+- shape($\vec{t}$) means the shape of tensor $\vec{t}$. 
+
+You can see such representations in docs of functions.
 >## Files
 - ./utils
   + base.h: to implement some cpp grammer and some easy basic functions.

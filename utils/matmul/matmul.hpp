@@ -1,6 +1,6 @@
-#ifndef NUMCPP_UTILS_MATMUL_HPP
-#define NUMCPP_UTILS_MATMUL_HPP
-
+#ifndef NUMCPP_UTILS_MATMUL_MATMUL_HPP
+#define NUMCPP_UTILS_MATMUL_MATMUL_HPP
+#include "../thread_pool.hpp"
 namespace numcpp::linalg{
 extern"C"{
     #include "c_matmul.h"
@@ -372,6 +372,8 @@ void _naive_matmul(
     }
 }
 }
+
+
 
 namespace numcpp{
     using linalg::LLong;
