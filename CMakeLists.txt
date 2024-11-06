@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.5.0)
 project(NumCpp VERSION 0.1.0 LANGUAGES C CXX)
 
-
+find_package(Threads REQUIRED)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 aux_source_directory(./shaped shaped_src)
 include_directories("./shaped")
 aux_source_directory(./utils utils_src)
 include_directories("./utils")
-add_executable(NumCpp main.cpp ${shaped_src} ${utils_src})
+aux_source_directory(./utils/matmul utils_src_mat)
+add_executable(NumCpp main.cpp ${shaped_src} ${utils_src} ${utils_src_mat})
+target_link_libraries(NumCpp Threads::Threads)

@@ -1,5 +1,6 @@
 #ifndef NUMCPP_SHAPED_SHAPE_HPP
 #define NUMCPP_SHAPED_SHAPE_HPP
+#include <sstream>
 #include "../utils/list.hpp"
 #include "../utils/pointer.hpp"
 namespace numcpp{
@@ -194,28 +195,30 @@ void printShaped(
         output(osm, *arr);
         return;
     }
+    std::ostringstream ossm;
     const auto shapeProduct=shape.getProductData();
     const auto shapeBufSize=shape.bufSize();
     for(size_t pos=0, i, braCnt=shapeDimNumber;pos<shapeBufSize;++pos){
         for(i=0;braCnt && i<shapeDimNumber-braCnt;++i)
-            osm<<' ';
+            ossm<<' ';
         for(i=0;i<braCnt;++i)
-            osm<<'[';
-        output(osm, *(arr+pos));
+            ossm<<'[';
+        output(ossm, *(arr+pos));
         for(i=0, braCnt=0; i<shapeDimNumber; ++i){
             if((pos+1)%shapeProduct[shapeDimNumber-i-1])
                 break;
             ++braCnt;
-            osm<<']';
+            ossm<<']';
         }
         if(pos+1!=shapeBufSize){
-            osm<<", ";
+            ossm<<", ";
             if(braCnt>=2)
-                osm<<"\n\n";
+                ossm<<"\n\n";
             else if(braCnt)
-                osm<<"\n";
+                ossm<<"\n";
         }
     }
+    osm << ossm.str();
 }
 
 /**

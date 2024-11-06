@@ -1,7 +1,7 @@
 #ifndef NUMCPP_SHAPED_PRIVATE_ARRAY_OP
 #define NUMCPP_SHAPED_PRIVATE_ARRAY_OP
-#include "./array.hpp"
 #include <cmath>
+#include "./array.hpp"
 #include "../utils/matmul/matmul.hpp"
 namespace numcpp{
 
@@ -278,7 +278,7 @@ ShapedArray<op_ret_t<EOperation::MUL, DType, T>> ShapedArray<DType>::matmul(Shap
     auto res = numcpp::fill<op_ret_t<EOperation::MUL, DType, T>>(0, {shape[0], obj_shape[1]});
 #define CALL_MATMUL(T1, T2, Ret)\
     else if constexpr(std::is_same_v<T1, DType> && std::is_same_v<T2, T>){\
-        linalg::_matmul_##T1##_##T2(mArray+0, obj.data(), res.data(), shape[0], obj_shape[0], obj_shape[1]);\
+        numcpp::linalg::_matmul_##T1##_##T2(mArray+0, obj.data(), res.data(), shape[0], obj_shape[0], obj_shape[1]);\
     }
     
     if constexpr(false);

@@ -6,6 +6,7 @@
 #include <cfloat>
 #include <cstdint>
 #include <cassert>
+#include <chrono>
 
 #define DEBUG 0
 namespace numcpp{
@@ -66,6 +67,26 @@ inline auto with(T &&obj, Functor &&func, ReleaseFunc &&del){
     return func(obj);
 }
 
+/**
+ * @brief 计算某个函数的执行时间
+ * @param repeat_times 反复执行的次数
+ * @param f 要执行的函数，写lambda即可
+ * @param output 对执行时间(单位微秒us)的处理函数，接受一个int64_t作为参数, 返回void
+ */
+template<class Functor>
+void compute_running_time(size_t repeat_times, Functor &&f, void (*output)(int64_t) = [](int64_t us){
+    std::cout<<"----------------------\nusing time:"<<us/1000.<<"ms"<<std::endl;
+}){
+    using Time = decltype(std::chrono::system_clock::now());
+    numcpp::with(std::chrono::system_clock::now(), [&repeat_times, &f](Time){
+        for(size_t i=0;i<repeat_times;++i)
+            f();
+    }, [&output](Time const &start_time){
+        auto end_time = std::chrono::system_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time-start_time).count();
+        output(duration);
+    });
+}
 
 /**
  * @brief 从低位到高位输出二进制内容
