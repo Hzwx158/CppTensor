@@ -58,11 +58,11 @@ public:
  * @brief 上下文管理
  * @param obj 被管理对象
  * @param func 执行代码, 接受obj作为参数
- * @param del 回收obj的函数, 接受obj作为参数
+ * @param del 回收obj的函数, 接受obj作为参数, 默认是什么都不干
  * @return func的返回值
  */
-template<class T, class Functor,class ReleaseFunc>
-inline auto with(T &&obj, Functor &&func, ReleaseFunc &&del){
+template<class T, class Functor, class ReleaseFunc=void(*)(T&)>
+inline auto with(T &&obj, Functor &&func, ReleaseFunc &&del=[](T &){}){
     Releaser releaser(obj, (ReleaseFunc&&)(del));
     return func(obj);
 }

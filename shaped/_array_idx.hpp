@@ -8,7 +8,7 @@ namespace numcpp{
  * @param boolArray bool下标
  * @return 每个点的下标
  */
-std::vector<FixedArray<size_t>> where(ShapedArray<bool> const &boolArray)
+inline std::vector<FixedArray<size_t>> where(ShapedArray<bool> const &boolArray)
 {
     Shape const &shape = boolArray.getShape();
     auto ptr = boolArray.data();

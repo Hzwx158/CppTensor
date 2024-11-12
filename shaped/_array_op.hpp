@@ -133,7 +133,7 @@ ShapedArray<DType>::operator/(ShapedArray<T> const &obj) const
     auto ptr = new double[l];
     if constexpr(DEBUG)
         std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<l<<']'<<std::endl;
-    auto obj_m = obj.mArray;
+    auto obj_m = obj.data();
     for(size_t i=0; i<l; ++i){
         ptr[i] = _div_(
             mArray[Shape::offsetBeforeBroadcast(i, resShape, shape)],

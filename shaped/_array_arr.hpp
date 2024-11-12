@@ -233,57 +233,6 @@ ShapedArray<DType> ShapedArray<DType>::reshape(const Shape &shape_){
     return res;
 }
 
-
-// ShapedRefArray ShapedArray::where(std::function<bool(const DType &)> cond) const{
-//     const auto size=shape.bufSize();
-//     DType *head=mArray;
-//     PtrVector<DType> res(size);
-//     size_t k=0;
-//     for(size_t i=0;i<size;++i)
-//         if(cond(head[i]))
-//             res[k++]=(head+i);
-//     res.shrinkTo(k);
-//     return res;
-// }
-
-// METHOD(DType**)::atByNumbers(const Shape::SizeTArray &index, DType **resBegin) const
-// {
-//     const auto argCount = index.size();
-//     if(index.empty()||argCount>shape.dimNumber())
-//         throw std::runtime_error("From ShapedArray::at(const vector &):\n\tWrong size of index");
-//     auto [offset, resCnt] = shape.offsetOf(index);
-//     DType *be=mArray+offset;
-//     for(size_t i=0;i<resCnt;++i)
-//         resBegin[i]=be+i;
-//     return resBegin+resCnt;
-// }
-
-//----------------------静态/友元--------------------------
-
-// ShapedArray zeros(const Shape &shape) {return ShapedArray(0,shape);}
-// ShapedArray ones(const Shape &shape) {return ShapedArray(1,shape);}
-// ShapedArray arange(ShapedArray::DType be, ShapedArray::DType en, ShapedArray::DType step, const Shape &shape){
-//     if(en==be)
-//         return ShapedArray();
-//     if((en-be)*step<=0)
-//         throw std::runtime_error("From ShapedArray::arange:\n\tWrong step");
-//     size_t cnt = static_cast<size_t>(abs((en-be)/step));
-//     if((!shape.empty())&&(shape.bufSize()!=cnt))
-//         throw std::runtime_error("From ShapedArray::arange:\n\tWrong shape");
-//     if(!cnt)
-//         return ShapedArray();
-//     ShapedArray::NumberPtr p=new ShapedArray::DType[cnt];
-// #if DEBUG
-//     std::cout<<"Pointer Alloc @"<<static_cast<void*>(p)<<'['<<cnt<<']'<<std::endl;
-// #endif
-//     ShapedArray::DType *h=p;
-//     for(;be<en;be+=step,++h)
-//         *h=be;
-//     if(shape.empty())
-//         return ShapedArray(std::move(p), Shape{cnt});
-//     else return ShapedArray(std::move(p), shape);//调用构造函数不一样，别省这个if
-// }
-
 }
 
 #endif

@@ -44,4 +44,12 @@ ThreadPool::~ThreadPool(){
         pthread_join(tids[i], nullptr);
     }
 }
+// OStream &endl(OStream &async_osm){
+//     {
+//         std::lock_guard lg(async_osm.mtx);
+//         async_osm.osm_ref << async_osm.oss.str() << std::endl;
+//         async_osm.oss.str("");
+//     }
+//     return async_osm;
+// }
 }

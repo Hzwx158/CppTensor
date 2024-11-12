@@ -1,16 +1,22 @@
 #include "./shaped/array.hpp"
+#include "./thread_pool.hpp"
+#include "./autograd/tensor.hpp"
 using numcpp::constant;
 using numcpp::with;
 using numcpp::compute_running_time;
+using numcpp::thread::ThreadPool;
+useStdIO;
+numcpp::thread::OStream acout(cout);
 
 void test_cpp(){
+    acout<<1<<endl;
     for(int i=0;i<100000;++i){
-        // printf("");
+        // acout<<'\0';
     }
 }
 
 
-#define TEST_CPP 0
+#define TEST_CPP 1
 int main(){
 #if !TEST_CPP
     auto mat1 = numcpp::arange<int>(0, 10000, 1, {10,1000});
@@ -20,22 +26,26 @@ int main(){
         mat1.matmul(mat2).print();
     });
 #else
-    compute_running_time(1, [](){
-        numcpp::thread::ThreadPool pool(5);
-        for(int i=0;i<100;++i){
-            pool.post(test_cpp);
-        }
-    });
-    compute_running_time(1, [](){
-        for(int i=0;i<100;++i)
-            test_cpp();
-    });
+    // with(ThreadPool(4), [](auto &pool){
+    //     for(int i=0;i<100;++i){
+    //         pool.post(test_cpp);
+    //     }
+    // });
+    // acout<<"END"<<endl;
     
-#endif  
+    using numcpp::Var;
+    auto x = Var::make(1.);
+    printf("x over\n");
+    auto y = Var::exp(x);
+    printf("y over\n");
+    Var::compute_gradiant(y);
+    printf("grad over\n");
+    acout << y << endl;
+    Var::free(x);
+    printf("del x\n");
+    Var::free(y);
+    printf("del y\n");
+#endif
+
     return 0;
 } 
-
-/** 开发进度记录
- * √各个运算的简单实现
- * np.where的设计和实现
- */
