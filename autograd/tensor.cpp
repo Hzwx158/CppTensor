@@ -24,7 +24,7 @@ int OP_NODE_CNT[]={
 #define DEBUG 1
 
 Var::Var(Value const &val, Op _op_type, bool require_grad_)
-    :op_type(_op_type), require_grad{require_grad_}, has_parent{false}, value(val)
+    :op_type(_op_type), require_grad{require_grad_}, value(val)
 {
 #if DEBUG
     std::cout<<"new Var @"<<(void*)this<<std::endl;
@@ -34,7 +34,7 @@ Var::Var(Value const &val, Op _op_type, bool require_grad_)
         zero_grad();
 }
 Var::Var(Value &&val, Op _op_type, bool require_grad_)
-    :op_type(_op_type), require_grad{require_grad_}, has_parent{false}, value(std::move(val))
+    :op_type(_op_type), require_grad{require_grad_}, value(std::move(val))
 {
 #if DEBUG
     std::cout<<"new Var @"<<(void*)this<<std::endl;
@@ -43,61 +43,57 @@ Var::Var(Value &&val, Op _op_type, bool require_grad_)
     if(!isConst())
         zero_grad();
 }
-Var *Var::make(Op op_type, Var *left, Var *right){
+Var::Ptr Var::make(Op op_type, Ptr const &left, Ptr const &right){
     if(OP_NODE_CNT[op_type]!=2)
         throw Error::wrong(__FILE__, __func__, "op type");
-    // 把left right都标记为有父亲的
-    left->has_parent = right->has_parent = true;
     // placement new技术来分配内存
-    char *mem = (char*)::operator new(sizeof(Var)+sizeof(Var*)*2);
-    *(Var**)(mem+sizeof(Var)) = left;
-    *(Var**)(mem+sizeof(Var)+sizeof(Var*)) = right;
-    return new(mem) Var(Value(0), op_type);    
+    char *mem = (char*)::operator new(sizeof(Var)+sizeof(Ptr)*2);
+    new(mem+sizeof(Var)) Ptr(left);
+    new(mem+sizeof(Var)+sizeof(Ptr)) Ptr(right);
+    return Ptr(new(mem) Var(Value(0), op_type), &Var::deleter);    
 }
-Var *Var::make(Op op_type, Var *left, Value *const_attr){
+Var::Ptr Var::make(Op op_type, Ptr const &left, Value *const_attr){
     if(op_type==PLACEHOLDER_OP)
-        return new Var(Value(0),PLACEHOLDER_OP);
+        return ZERO();
     if(OP_NODE_CNT[op_type]==2)
         throw Error::wrong(__FILE__,__func__,"op type");
-    // left标记为有父亲的
-    left->has_parent = true;
     // placement new 来分配内存
-    char *mem = (char*)::operator new(sizeof(Var)+sizeof(Var*)+sizeof(Value*)*hasConstAttr(op_type));
-    *(Var**)(mem+sizeof(Var)) = left;
+    char *mem = (char*)::operator new(sizeof(Var)+sizeof(Ptr)+sizeof(Value*)*hasConstAttr(op_type));
+    new(mem+sizeof(Var)) Ptr(left);
     if(hasConstAttr(op_type))
-        *(Value**)(mem+sizeof(Var)+sizeof(Var*)) = const_attr;
-    return new(mem) Var(Value(0), op_type);
+        *(Value**)(mem+sizeof(Var)+sizeof(Ptr)) = const_attr;
+    return Ptr(new(mem) Var(Value(0), op_type), &Var::deleter);
 }
-void Var::free(Var *var){
+void Var::deleter(Var *var){
     if(!var) return;
-    if(!var->isConst()){
-        // std::cout << "var"<<*var<<std::endl;
-        // std::cout << "grd"<<*var->gradiant_node<<std::endl;
-        Var::free(var->gradiant_node);
+    // std::cout << "var"<<*var<<std::endl;
+    // std::cout << "grd"<<*var->gradient_node<<std::endl;
+    switch(OP_NODE_CNT[var->op_type]){
+    case 2:
+        var->getChild(1).~Ptr();
+        var->getChild(0).~Ptr();
+        break;
+    case 1:
+        if(hasConstAttr(var->op_type))
+            delete var->getConstAttr();
+        var->getChild(0).~Ptr();
+        break;
+    default:
+        break;
     }
-    if(var->has_parent) return;
-    // 先计算逆拓扑序
-    std::vector<Var*> topo_order{};
-    std::unordered_set<Var*> visited;
-    dfs(var, topo_order, visited);
-    // 遍历拓扑序
-    for(auto &ptr:topo_order){
-        // 不可以直接delete，会回收不全，要按照下面这个方式delete
-        ptr->~Var();
-        ::operator delete(ptr);
-    }
-}
-Var::~Var(){
+    var->~Var();
+    ::operator delete(var);
 #if DEBUG
-    std::cout<<"del Var @"<<(void*)this<<std::endl;
+    std::cout<<"del Var @"<<(void*)var<<std::endl;
 #endif
 }
+Var::~Var(){}
 
-void dfs(Var *node, std::vector<Var*> &res, std::unordered_set<Var*> &visited){
-    if((!node)||visited.count(node)) return;
-    visited.emplace(node);
+void dfs(Var::Ptr const &node, std::vector<Var::Ptr> &res, std::unordered_set<Var*> &visited){
+    if((!node)||visited.count(node.get())) return;
+    visited.emplace(node.get());
     for(int i=0; i<OP_NODE_CNT[node->op_type]; ++i){
-        auto child = node->getChild(i);
+        Var::Ptr const &child = node->getChild(i);
         if(child) dfs(child, res, visited);
     }
     res.push_back(node);
@@ -147,49 +143,50 @@ void Var::compute(){
         std::swap(p_op1, p_op2);
     value = (p_op1->*OP_COMPUTE_FUNC[op_type])(*p_op2);
 }
-Var *Var::add(Var *var2) const{
-    if(this->isConst()){
+
+Var::Ptr operator+(Var::Ptr const &var1, Var::Ptr const &var2){
+    if(var1->isConst()){
         if(var2->isConst())
-            return Var::make(this->value+var2->value, false);
-        return var2->add(this->value); 
+            return Var::make(var1->value+var2->value, false);
+        return var2 + (var1->value); 
     }
     if(var2->isConst())
-        return this->add(var2->value);
-    return Var::make(Var::ADD_OP, (Var*)this, var2);
+        return var1 + (var2->value);
+    return Var::make(Var::ADD_OP, var1, var2);
 }
-Var *Var::add(Var::Value const &val) const{
-    if(this->isConst())
-        return Var::make(this->value + val, false);
-    return Var::make(Var::ADD_CONST_OP, (Var*)this, new Var::Value(val));
+Var::Ptr operator+(Var::Ptr const &var, Var::Value const &val){
+    if(var->isConst())
+        return Var::make(var->value + val, false);
+    return Var::make(Var::ADD_CONST_OP, var, new Var::Value(val));
 }
-Var *Var::add(Var::Value &&val) const{
-    if(this->isConst())
-        return Var::make(this->value + val, false);
-    return Var::make(Var::ADD_CONST_OP, (Var*)this, new Var::Value(std::move(val)));
+Var::Ptr operator+(Var::Ptr const &var, Var::Value &&val){
+    if(var->isConst())
+        return Var::make(var->value + val, false);
+    return Var::make(Var::ADD_CONST_OP, var, new Var::Value(std::move(val)));
 }
 
-Var *Var::mul(Var *var2) const{
-    if(this->isConst()){
+Var::Ptr operator*(Var::Ptr const &var1, Var::Ptr const &var2){
+    if(var1->isConst()){
         if(var2->isConst())
-            return Var::make(this->value*var2->value, false);
-        return var2->mul(this->value); 
+            return Var::make(var1->value*var2->value, false);
+        return var2 * (var1->value); 
     }
     if(var2->isConst())
-        return this->mul(var2->value);
-    return Var::make(Var::MUL_OP, (Var*)this, var2);
+        return var1 * (var2->value);
+    return Var::make(Var::MUL_OP, var1, var2);
 }
-Var *Var::mul(Var::Value const &val) const{
-    if(this->isConst())
-        return Var::make(this->value * val, false);
-    return Var::make(Var::MUL_CONST_OP, (Var*)this, new Var::Value(val));
+Var::Ptr operator*(Var::Ptr const &var, Var::Value const &val){
+    if(var->isConst())
+        return Var::make(var->value * val, false);
+    return Var::make(Var::MUL_CONST_OP, var, new Var::Value(val));
 }
-Var *Var::mul(Var::Value &&val) const{
-    if(this->isConst())
-        return Var::make(this->value * val, false);
-    return Var::make(Var::MUL_CONST_OP, (Var*)this, new Var::Value(std::move(val)));
+Var::Ptr operator*(Var::Ptr const &var, Var::Value &&val){
+    if(var->isConst())
+        return Var::make(var->value * val, false);
+    return Var::make(Var::MUL_CONST_OP, var, new Var::Value(std::move(val)));
 }
 
-Var *Var::exp(Var *var){
+Var::Ptr Var::exp(Ptr const &var){
     if(var->isConst())
         return Var::make(var->value.exp(), false);
     return Var::make(Var::EXP_OP, var);

@@ -1,6 +1,6 @@
 #ifndef NUMCPP_AUTOGRAD_TENSOR_HPP
 #define NUMCPP_AUTOGRAD_TENSOR_HPP
-// #include <memory>
+#include <memory>
 #include <unordered_set>
 #include "../shaped/array.hpp"
 namespace numcpp{
@@ -19,11 +19,10 @@ public:
     };
     Var(Var const &obj)=delete;
     Var(Var &&obj)=delete;
-    // using Ptr = std::shared_ptr<Var>;
+    using Ptr = std::shared_ptr<Var>;
     Op op_type;
     bool require_grad;
-    bool has_parent;
-    Var *gradiant_node;
+    Ptr gradient_node;
     Value value;
 private:
     char data[0];
@@ -53,23 +52,21 @@ public:
     /**
      * @brief 清空梯度
      */
-    void zero_grad(){gradiant_node = make(0, false);}
-
-    
+    void zero_grad(){gradient_node = ZERO();}
     /**
      * @brief 获取第i（0,1）个孩子的shared_ptr
      * @param i 第i个孩子，0或1
      * @return 一个Ptr const &
      */
-    Var *getChild(int i) const{
-        return *(Var**)(data + sizeof(Var*)*i);
+    Ptr const &getChild(int i) const{
+        return *(Ptr*)(data + sizeof(Ptr)*i);
     }
     /**
      * @brief 获取const_attr
      * @return const_attr
      */
     Value *getConstAttr() const{
-        return *(Value**)(data + sizeof(Var*));
+        return *(Value**)(data + sizeof(Ptr));
     }
     /**
      * @brief 构造一个节点
@@ -78,7 +75,7 @@ public:
      * @param right 右节点
      * @return 一个shared_ptr，新节点
      */
-    static Var *make(Op op_type, Var *left, Var *right);
+    static Ptr make(Op op_type, Ptr const &left, Ptr const &right);
     /**
      * @brief 构造一个节点
      * @param op_type 运算符类型，默认无
@@ -86,15 +83,15 @@ public:
      * @param const_attr 一个Value *类型的常量值(默认无)
      * @return 一个shared_ptr，新节点
      */
-    static Var *make(Op op_type=PLACEHOLDER_OP, Var *left=nullptr, Value *const_attr=nullptr);
+    static Ptr make(Op op_type=PLACEHOLDER_OP, Ptr const &left=nullptr, Value *const_attr=nullptr);
     /**
      * @brief 构造一个指定初始值的叶子节点
      * @param val 一个值
      * @param require_grad 需要求导(默认true)
      * @return 一个shared_ptr
      */
-    static Var *make(Value const &val, bool require_grad=true){
-        return new Var(val, PLACEHOLDER_OP, require_grad);
+    static Ptr make(Value const &val, bool require_grad=true){
+        return Ptr(new Var(val, PLACEHOLDER_OP, require_grad), &Var::deleter);
     }
     /**
      * @brief 构造一个指定初始值的叶子节点
@@ -102,14 +99,23 @@ public:
      * @param require_grad 需要求导(默认true)
      * @return 一个shared_ptr
      */
-    static Var *make(Value &&val, bool require_grad=true){
-        return new Var(std::move(val), PLACEHOLDER_OP,require_grad);
+    static Ptr make(Value &&val, bool require_grad=true){
+        return Ptr(new Var(std::move(val), PLACEHOLDER_OP,require_grad), &Var::deleter);
     }
     /**
      * @brief 释放一个节点的函数，是make构造节点的shared_ptr的deleter
      * @param var 一个节点指针
      */
-    static void free(Var *var);
+    static void deleter(Var *var);
+    static Ptr ZERO(){
+        static Ptr res(Var::make(0, false));
+        return res;
+    }
+    static Ptr ONE(){
+        static Ptr res(Var::make(1, false));
+        return res;
+    }
+    
 
 public:
     /**
@@ -124,36 +130,35 @@ public:
         std::ostringstream oss;
         oss << "Var@"<<(void*)&obj << "{\n\t";
         oss << "value: "<< obj.value << ",\n\t";
-        oss << "grad@"<<(void*)(obj.gradiant_node)<<",\n\t";
-        oss << "grad.value:"<<obj.gradiant_node->value<<"\n}";
+        oss << "grad@"<<(void*)(obj.gradient_node.get())<<",\n\t";
+        oss << "grad.value:"<<obj.gradient_node->value<<"\n}";
         return osm << oss.str();
     }
-    Var *add(Var *var) const;
-    Var *add(Value const &val) const;
-    Var *add(Value &&val) const;
-    friend Var *add(Value const &val, Var *var){return var->add(val);}
-    friend Var *add(Value &&val, Var *var){return var->add(std::move(val));}
-    Var *mul(Var *var) const;
-    Var *mul(Value const &val) const;
-    Var *mul(Value &&val) const;
-    friend Var *mul(Value const &val, Var *var){return var->mul(val);}
-    friend Var *mul(Value &&val, Var *var){return var->mul(std::move(val));}
+    friend Ptr operator+(Ptr const &var1, Ptr const &var2);
+    friend Ptr operator+(Ptr const &var, Value const &val);
+    friend Ptr operator+(Ptr const &var, Value &&val);
+    friend Ptr operator+(Value const &val, Ptr const &var){return var + val;}
+    friend Ptr operator+(Value &&val, Ptr const &var){return var+std::move(val);}
+    friend Ptr operator*(Ptr const &var1, Ptr const &var2);
+    friend Ptr operator*(Ptr const &var, Value const &val);
+    friend Ptr operator*(Ptr const &var, Value &&val);
+    friend Ptr operator*(Value const &val, Ptr const &var){return var * val;}
+    friend Ptr operator*(Value &&val, Ptr const &var){return var*std::move(val);}
     
-    static Var *exp(Var *var);
-    // Var *mul(Var *var);
-    // Var *mul(Value const &val);
-    // Var *mul(Value &&val);
-    // Var *exp();
+    static Ptr exp(Ptr const &var);
+    
+
     /**
      * @brief (传给)第i个孩子的梯度
      * @param self 本节点
      * @param i 0或1，孩子节点的下标
      * @return 一个shared_ptr
      */
-    static Var *gradOfChild(Var *self, int i);
+    static Ptr gradOfChild(Ptr const &self, int i);
 
-    static void compute_gradiant(Var *self);
+    static void compute_gradient(Ptr const &self);
 };
+
 /**
  * @brief 判断一个符号有无const_attr
  * @param op_type 符号
@@ -190,6 +195,9 @@ inline bool isReverse(Var::Op op_type){
     }
 }
 
-void dfs(Var *node, std::vector<Var*> &res, std::unordered_set<Var*> &visited);
+void dfs(Var::Ptr const &node, std::vector<Var::Ptr> &res, std::unordered_set<Var*> &visited);
+
+
+
 }
 #endif

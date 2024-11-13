@@ -38,13 +38,17 @@ int main(){
     printf("x over\n");
     auto y = Var::exp(x);
     printf("y over\n");
-    Var::compute_gradiant(y);
-    printf("grad over\n");
-    acout << y << endl;
-    Var::free(x);
-    printf("del x\n");
-    Var::free(y);
-    printf("del y\n");
+    auto z = Var::exp(y);
+    printf("z over\n");
+    with(std::vector<Var*>{x.get(), y.get(), z.get()}, [&](auto &&){
+        Var::compute_gradient(z);
+        printf("grad over\n");
+        acout << x->gradient_node << numcpp::exp(constant::e+1) << endl;
+    }, [](std::vector<Var*> const &var_list){
+        for(auto &var:var_list)
+            var->zero_grad();
+    });
+    
 #endif
 
     return 0;
