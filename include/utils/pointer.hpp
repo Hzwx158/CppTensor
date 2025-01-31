@@ -1,6 +1,6 @@
 #ifndef NUMCPP_UTILS_POINTER_HPP
 #define NUMCPP_UTILS_POINTER_HPP
-#include "./base.h"
+#include "utils/base.h"
 namespace numcpp
 {
 DEF_TYPE_JUDGE(void);

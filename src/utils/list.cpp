@@ -1,4 +1,4 @@
-#include "./list.hpp"
+#include "utils/list.hpp"
 namespace numcpp{
 
 size_t *toBoundedIndex(size_t idx, size_t bufSize, size_t *res){

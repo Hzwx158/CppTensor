@@ -1,8 +1,8 @@
 #ifndef NUMCPP_SHAPED_PRIVATE_ARRAY_OP
 #define NUMCPP_SHAPED_PRIVATE_ARRAY_OP
 #include <cmath>
-#include "./array.hpp"
-#include "../utils/matmul/matmul.hpp"
+// #include "shaped/array.hpp"
+#include "utils/matmul/matmul.hpp"
 namespace numcpp{
 
 #define OP_DEF_CODE(opStr, opName)\

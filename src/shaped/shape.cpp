@@ -1,4 +1,4 @@
-#include "shape.hpp"
+#include "shaped/shape.hpp"
 namespace numcpp{
 
 Shape::Shape(std::initializer_list<size_t> shape_)

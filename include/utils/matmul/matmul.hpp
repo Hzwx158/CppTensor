@@ -3,7 +3,7 @@
 
 namespace numcpp::linalg{
 extern"C"{
-    #include "c_matmul.h"
+    #include "utils/matmul/c_matmul.h"
 }
 /**
  * @brief 矩阵乘法实现

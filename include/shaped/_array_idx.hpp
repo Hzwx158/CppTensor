@@ -1,6 +1,6 @@
 #ifndef NUMCPP_SHAPED_INDEX_HPP
 #define NUMCPP_SHAPED_INDEX_HPP
-#include "./array.hpp"
+// #include "./array.hpp"
 namespace numcpp{
 
 /**

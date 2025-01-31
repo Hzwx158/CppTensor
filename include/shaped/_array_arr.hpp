@@ -1,6 +1,6 @@
 #ifndef NUMCPP_SHAPED_PRIVATE_ARRAY_ARR
 #define NUMCPP_SHAPED_PRIVATE_ARRAY_ARR
-#include "./array.hpp"
+// #include "./array.hpp"
 namespace numcpp{
 //--------------------------------内存---------------------------
 template<class DType>
@@ -116,11 +116,14 @@ ShapedArray<DType> &ShapedArray<DType>::operator=(
             clear();
             return *this;
         }
-        shape = obj.shape;
-        mArray = new DType[shape.bufSize()];
+        if(obj.shape.bufSize()!=shape.bufSize()){
+            clear();
+            mArray = UPtr(new DType[obj.shape.bufSize()]);
 #if DEBUG
-        std::cout<<"Pointer Alloc @"<<static_cast<void*>(mArray)<<std::endl;
+            std::cout<<"Pointer Alloc @"<<static_cast<void*>(mArray)<<std::endl;
 #endif
+        }
+        shape = obj.shape;
         memcpy(mArray, obj.mArray, shape.bufSize()*sizeof(DType));
         return *this;
     }
@@ -149,7 +152,7 @@ ShapedArray<DType> &ShapedArray<DType>::operator=(
         clear();
         if(obj.shape.empty())
             return *this;
-        shape=std::move(obj.shape);
+        shape = std::move(obj.shape);
         mArray = std::move(obj.mArray);
         //obj.clear();
         return *this;
@@ -191,13 +194,13 @@ ShapedArray<T> arange(const T &be, const T &en, const T &step = 1, const Shape &
         throw Error::wrong(__FILE__,__func__, "Wrong shape size");
     T *ptr = new T[len];
 #if DEBUG
-    std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<shape.bufSize()<<']'<<std::endl;
+    std::cout<<"Pointer Alloc @"<<static_cast<void*>(ptr)<<'['<<len<<']'<<std::endl;
 #endif
     for(size_t i=0;i<len;++i)
         ptr[i] = be+i*step;
     if(shape.empty())
         return ShapedArray<T>(std::move(ptr), Shape({len}));
-    else return ShapedArray<T>(std::move(ptr), shape);
+    else return ShapedArray<T>(std::move(ptr), std::move(shape));
 }
 //-------------------------功能-----------------------------
 

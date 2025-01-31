@@ -1,7 +1,7 @@
 #ifndef NUMCPP_SHAPED_ARRAY_HPP
 #define NUMCPP_SHAPED_ARRAY_HPP
-#include "./shape.hpp"
-#include "../utils/pointer.hpp"
+#include "shaped/shape.hpp"
+#include "utils/pointer.hpp"
 namespace numcpp{
 // #define atCond(...) \
 // where([&](auto &num){ return __VA_ARGS__; })
@@ -310,7 +310,8 @@ inline double abs(double a){return a>0?a:-a;}
 }
 //---------------------------------------------------实现---------------------------------------------------
 
-#include "./_array_arr.hpp"
-#include "./_array_idx.hpp"
-#include "./_array_op.hpp"
+#include "shaped/_array_arr.hpp"
+#include "shaped/_array_idx.hpp"
+#include "shaped/_array_op.hpp"
+
 #endif

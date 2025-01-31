@@ -62,7 +62,8 @@ public:
  * @return func的返回值
  */
 template<class T, class Functor, class ReleaseFunc=void(*)(T&)>
-inline auto with(T &&obj, Functor &&func, ReleaseFunc &&del=[](T &){}){
+inline auto with(T &&obj, Functor &&func, ReleaseFunc &&del=[](T &){})->std::invoke_result_t<Functor, T>
+{
     Releaser releaser(obj, (ReleaseFunc&&)(del));
     return func(obj);
 }
@@ -256,7 +257,7 @@ struct OpRetHelper<EOperation::MOL, T1, T2>{
 };
 template<class T1, class T2>
 struct OpRetHelper<EOperation::BIT, T1, T2>{
-    using type = decltype(std::declval<T1>()|std::declval<T2>());
+    using type = decltype(std::declval<T1>()<<std::declval<T2>());
 };
 template<class T1, class T2>
 struct OpRetHelper<EOperation::LOGICAL, T1, T2>{

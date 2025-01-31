@@ -1,4 +1,4 @@
-#include "c_matmul.h"
+#include "utils/matmul/c_matmul.h"
 #define MATMUL_DEF(T1, T2, Ret)\
 int _matmul_##T1##_##T2(\
     T1 *mat1, T2 *mat2, Ret *res, \

@@ -1,4 +1,4 @@
-#include "thread_pool.hpp"
+#include "utils/thread_pool.hpp"
 
 namespace numcpp::thread{
 void *ThreadPool::thread_loop(void *args){

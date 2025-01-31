@@ -1,8 +1,9 @@
 #ifndef NUMCPP_SHAPED_SHAPE_HPP
 #define NUMCPP_SHAPED_SHAPE_HPP
 #include <sstream>
-#include "../utils/list.hpp"
-#include "../utils/pointer.hpp"
+#include "utils/list.hpp"
+#include "utils/pointer.hpp"
+
 namespace numcpp{
 
 class Shape{

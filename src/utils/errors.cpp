@@ -1,4 +1,4 @@
-#include "./errors.h"
+#include "utils/errors.h"
 namespace numcpp{
 std::string Error::ullToStr(size_t num){
     if(!num) return "0";

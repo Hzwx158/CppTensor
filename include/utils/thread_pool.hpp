@@ -99,53 +99,53 @@ public:
 };
 /**
  * @brief A simple class for async output
- */
-class OStream{
-private:
-    // cache
-    std::ostringstream oss;
-    // the std::ostream binded
-    std::ostream &osm_ref;
-    // mutex for output
-    std::mutex mtx;
-public:
-    /**
-     * @brief constructor, bind this with a std::ostream
-     * @param osm the ostream to be bind
-     */
-    explicit OStream(std::ostream &osm):oss(), osm_ref(osm), mtx(){}
-    OStream(const OStream &) = delete;
-    OStream(OStream &&)=delete;
-    ~OStream(){
-        if(oss.str().length())
-            osm_ref << oss.str();
-    }
-    OStream &operator<<(std::ostream &(*f)(std::ostream &)){
-        {
-            std::lock_guard lg(mtx);
-            osm_ref << oss.str() << f;
-            oss.str("");
-        }
-        return *this;
-    }
-    OStream &operator<<(OStream &(*f)(OStream &)){
-        return f(*this);;
-    }
-    template<class T>
-    OStream &operator<<(T &&obj){
-        {    
-            std::lock_guard lg(mtx);
-            oss << obj;
-            std::string const &s = oss.str();
-            if(s.length()>10){
-                osm_ref << s;
-                oss.str("");
-            }
-        }
-        return *this;
-    }
-    // friend OStream &endl(OStream &async_osm);
-};
+//  */
+// class OStream{
+// private:
+//     // cache
+//     std::ostringstream oss;
+//     // the std::ostream binded
+//     std::ostream &osm_ref;
+//     // mutex for output
+//     std::mutex mtx;
+// public:
+//     /**
+//      * @brief constructor, bind this with a std::ostream
+//      * @param osm the ostream to be bind
+//      */
+//     explicit OStream(std::ostream &osm):oss(), osm_ref(osm), mtx(){}
+//     OStream(const OStream &) = delete;
+//     OStream(OStream &&)=delete;
+//     ~OStream(){
+//         if(oss.str().length())
+//             osm_ref << oss.str();
+//     }
+//     OStream &operator<<(std::ostream &(*f)(std::ostream &)){
+//         {
+//             std::lock_guard lg(mtx);
+//             osm_ref << oss.str() << f;
+//             oss.str("");
+//         }
+//         return *this;
+//     }
+//     OStream &operator<<(OStream &(*f)(OStream &)){
+//         return f(*this);;
+//     }
+//     template<class T>
+//     OStream &operator<<(T &&obj){
+//         {    
+//             std::lock_guard lg(mtx);
+//             oss << obj;
+//             std::string const &s = oss.str();
+//             if(s.length()>10){
+//                 osm_ref << s;
+//                 oss.str("");
+//             }
+//         }
+//         return *this;
+//     }
+//     // friend OStream &endl(OStream &async_osm);
+// };
 // OStream &endl(OStream &async_osm);
 
 }
