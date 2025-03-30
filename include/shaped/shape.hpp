@@ -1,22 +1,27 @@
-#ifndef CPPTENSOR_SHAPEDARRAY_SHAPE_H
-#define CPPTENSOR_SHAPEDARRAY_SHAPE_H
-#include "./simplevector.hpp"
-#include "./pointer.hpp"
-#include <functional>
-namespace tryAI{
+#ifndef NUMCPP_SHAPED_SHAPE_HPP
+#define NUMCPP_SHAPED_SHAPE_HPP
+#include <sstream>
+#include "utils/list.hpp"
+#include "utils/pointer.hpp"
+
+namespace numcpp{
 
 class Shape{
 public:
-    using Vector=std::vector<size_t>;
+    using SizeTArray=FixedArray<size_t>;
     /**
      * @brief 计算广播的形状
      * @param shape1 形状1
      * @param shape2 形状2
-     * @return 广播后的形状；如果changed是false则为空
+     * @return 广播后的形状；
     */
-    static Shape broadcast(const Shape &shape1, const Shape &shape2);
-
-    static Shape broadcast(const std::vector<Shape> &shapes);
+    static Shape broadcast(Shape const &shape1, Shape const &shape2);
+    /**
+     * @brief 计算广播的形状
+     * @param shapes 一堆形状
+     * @return 广播后的形状；
+    */
+    static Shape broadcast(std::vector<Shape> const &shapes);
 
     /**
      * @brief 给定一个广播后形状中的偏移量，计算在广播前的Shape中，该坐标的偏移量; 时间复杂度 O(broShape.dimNumber())
@@ -26,10 +31,10 @@ public:
      * @return 返回广播前该偏移量对应的偏移量
      * @attention 不会检查srcShape和broShape是否符合广播机制，也不会对二者进行广播。请使用者调用时一定要保证srcShape可以广播到broShape中
     */
-    static size_t offsetBeforeBroadcast(size_t broOffset, const Shape &broShape, const Shape &srcShape);
+    static size_t offsetBeforeBroadcast(size_t broOffset, Shape const &broShape, Shape const &srcShape);
 private:
-    Vector shape; 
-    Vector product; 
+    SizeTArray shape; 
+    SizeTArray product; 
     void generateProduct();
 public:
     /**
@@ -42,15 +47,17 @@ public:
      * @brief 直接构造
      * @param shape_ 直接存到shape
      * @param product_ 直接存到product
-     * @attention shape、product都是倒着存的，谨慎！
     */
-    Shape(Vector &&shape_, Vector &&product_):shape(std::move(shape_)),product(std::move(product_)){}
+    Shape(SizeTArray &&shape_, SizeTArray &&product_)
+        :shape(std::move(shape_))
+        ,product(std::move(product_))
+    {}
     /**
      * @brief 默认构造函数，为空shape
     */
     constexpr Shape():shape(),product(){}
-    Shape(const Shape &)=default;
-    Shape(Shape &&)=default;
+    Shape(Shape const &obj):shape(obj.shape), product(obj.product){}
+    Shape(Shape &&obj):shape(std::move(obj.shape)), product(std::move(obj.product)){}
     /**
      * @brief 返回第idx个维度的长度
      * @param idx 维度数
@@ -64,7 +71,7 @@ public:
     */
     size_t dimSizeOf(size_t dim) const {return shape[dim];}
     /**
-     * @brief 返回在第dim个维度的步长
+     * @brief 返回在第dim个维度的步长(第dim个维度的每一个子数组含有多少元素)
      * @param dim 维度数
      * @return 在第dim个维度的步长
     */
@@ -80,10 +87,15 @@ public:
     */
     size_t bufSize() const {return product[0];}
     /**
+     * @brief 返回这个形状是否是数字的形状
+     * @return 是数字则返回true，否则返回false
+     */
+    bool isNumberShape() const {return product[0]==1 && shape.size()==0;}
+    /**
      * @brief 是否为空形状(没存东西的Tensor的shape)
      * @return 空为true
     */
-    bool isEmpty() const {return product.empty();}
+    bool empty() const {return !product.size();}
     /**
      * @brief 清空
      */
@@ -116,7 +128,13 @@ public:
      * @param index 多维坐标，如{1,0,-1}
      * @return 一个pair，first是该坐标对应的起始偏移量，second是该子数组含元素(即数字)个数
     */
-    std::pair<size_t,size_t> offsetOf(const std::vector<size_t> &index) const;
+    std::pair<size_t,size_t> offsetOf(SizeTArray const &index) const;
+    /**
+     * @brief 获取某个offset的坐标
+     * @param offset 偏移量/第几个元素
+     * @return 一个FixedArray<size_t>，是offset对应的坐标
+     */
+    SizeTArray indexOf(size_t offset) const;
     /**
      * @brief 缩减长度是1的维度
     */
@@ -127,15 +145,32 @@ public:
     */
     void squeeze(size_t dim);
 
-    Shape &operator=(const Shape &)=default;
+    Shape &operator=(Shape const &)=default;
     Shape &operator=(Shape &&)=default;
-    bool operator==(const Shape &shape_) const;
-    bool operator!=(const Shape &shape_) const {return !((*this)==shape_);}
-    Shape operator+(const Shape &shape_) const;
-    H_OUTPUTABLE(Shape)
+    bool operator==(Shape const &shape_) const;
+    bool operator!=(Shape const &shape_) const {return !((*this)==shape_);}
+    Shape operator+(Shape const &shape_) const;
+    H_OUTPUTABLE(Shape);
 };
 
-
+template<class T>
+void _output_number(std::ostream &osm, T const &obj){
+    if constexpr(std::is_same_v<bool, T>)
+        osm << (obj?"true":"false");
+    else{
+        if constexpr((!std::is_unsigned_v<T>)||std::is_same_v<T, double>||std::is_same_v<T, float>){
+            if(obj == ninf_v<T>){
+                osm << "-inf";
+                return;
+            }
+        }
+        if(obj == inf_v<T>)
+            osm << "inf";
+        else if constexpr(std::is_same_v<char, T> || std::is_same_v<unsigned char, T>)
+            osm << (int)(obj);
+        else osm << obj;
+    }  
+}
 /**
  * @brief 输出有形状的数组的函数
  * @param arr 输出内存的首地址
@@ -146,12 +181,11 @@ public:
 */
 template<class T>
 void printShaped(
-    const T *arr, const Shape &shape, 
+    const T *arr, Shape const &shape, 
     std::ostream &osm=std::cout,
-    const std::function<void(std::ostream&,const T &)> &output
-    =[](std::ostream &osm, const T &ele){osm<<ele;}
+    const std::function<void(std::ostream&,T const &)> &output = _output_number<T>
 ) {
-    if(shape.isEmpty()){
+    if(shape.empty()){
         //空数组
         osm<<"[]";
         return;
@@ -162,28 +196,30 @@ void printShaped(
         output(osm, *arr);
         return;
     }
+    std::ostringstream ossm;
     const auto shapeProduct=shape.getProductData();
     const auto shapeBufSize=shape.bufSize();
     for(size_t pos=0, i, braCnt=shapeDimNumber;pos<shapeBufSize;++pos){
         for(i=0;braCnt && i<shapeDimNumber-braCnt;++i)
-            osm<<' ';
+            ossm<<' ';
         for(i=0;i<braCnt;++i)
-            osm<<'[';
-        output(osm, *(arr+pos));
+            ossm<<'[';
+        output(ossm, *(arr+pos));
         for(i=0, braCnt=0; i<shapeDimNumber; ++i){
             if((pos+1)%shapeProduct[shapeDimNumber-i-1])
                 break;
             ++braCnt;
-            osm<<']';
+            ossm<<']';
         }
         if(pos+1!=shapeBufSize){
-            osm<<", ";
+            ossm<<", ";
             if(braCnt>=2)
-                osm<<"\n\n";
+                ossm<<"\n\n";
             else if(braCnt)
-                osm<<"\n";
+                ossm<<"\n";
         }
     }
+    osm << ossm.str();
 }
 
 /**
@@ -197,14 +233,18 @@ void printShaped(
  * @attention 结果的内存条一定是新分配的, 记得delete
 */
 template<class Number>
-std::pair<Number *, Shape> broadcastShaped(const Number *src, const Shape &srcShape, const Shape &anoShape, bool needBroadcast=true)
-{
+std::pair<Number *, Shape> broadcastShaped(
+    const Number *src, 
+    Shape const &srcShape, 
+    Shape const &anoShape, 
+    bool needBroadcast=true
+){
     //1.需要形状非空
-    if(srcShape.isEmpty()) 
-        throw std::runtime_error("From broadcastShaped:\n\t<srcShape> is empty!");
-    if(anoShape.isEmpty())
-        throw std::runtime_error("From broadcastShaped:\n\t<anoShape> is empty!");
-    const Shape &resShape = (needBroadcast?Shape::broadcast(srcShape, anoShape):anoShape);
+    if(srcShape.empty()) 
+        throw Error::wrong(__FILE__, __func__, "<srcShape> is empty!");
+    if(anoShape.empty())
+        throw Error::wrong(__FILE__,__func__, "<anoShape> is empty!");
+    Shape const &resShape = (needBroadcast?Shape::broadcast(srcShape, anoShape):anoShape);
     const auto srcBufSize=srcShape.bufSize();
     const auto srcDimNumber=srcShape.dimNumber();
     const auto resBufSize=resShape.bufSize();

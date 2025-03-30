@@ -1,15 +1,19 @@
 cmake_minimum_required(VERSION 3.5.0)
-project(numHCpp VERSION 0.1.0 LANGUAGES C CXX)
+project(NumCpp VERSION 0.1.0 LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
 
-include(CTest)
-enable_testing()
+find_package(Threads REQUIRED)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 
-aux_source_directory(./shapedarray tensor_src)
-# aux_source_directory(./autograd autograd_src)
-include_directories("./shapedarray")
-# include_directories("./autograd")
+include_directories(./include)
 
-add_executable(numHCpp main.cpp ${tensor_src}) #${autograd_src})
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-include(CPack)
+aux_source_directory(./src/shaped shaped_src)
+aux_source_directory(./src/utils utils_src)
+aux_source_directory(./src/autograd autograd_src)
+aux_source_directory(./src/utils/matmul utils_src_mat)
+add_executable(NumCpp ./src/main.cpp ${shaped_src} ${utils_src} ${utils_src_mat} ${autograd_src})
+# 引入fmt、pthread
+add_subdirectory(libs/fmt EXCLUDE_FROM_ALL)
+include_directories(libs/fmt/include)
+target_link_libraries(NumCpp fmt Threads::Threads)
+
